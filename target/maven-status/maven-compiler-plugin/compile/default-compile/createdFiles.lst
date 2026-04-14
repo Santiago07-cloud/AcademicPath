@@ -1,0 +1,7 @@
+com\academicpath\backend\models\entity\Usuarios.class
+com\academicpath\backend\dao\usuarios\impl\usuariosDaoImpl.class
+com\academicpath\backend\manager\usuarios\impl\UsuariosManagerImpl.class
+com\academicpath\backend\BackendApplication.class
+com\academicpath\backend\dao\usuarios\usuariosDao.class
+com\academicpath\backend\manager\usuarios\UsuariosManager.class
+com\academicpath\backend\services\usuarios\UsuariosServiceImpl.class
