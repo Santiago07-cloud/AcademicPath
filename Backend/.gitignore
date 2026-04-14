@@ -1,0 +1,37 @@
+# Backend-specific .gitignore
+
+# Maven
+target/
+.mvn/wrapper/maven-wrapper.jar
+*.war
+*.ear
+*.zip
+
+# IDE
+.idea/
+.vscode/
+*.iws
+*.iml
+*.ipr
+.classpath
+.project
+.settings
+.springBeans
+.sts4-cache
+.apt_generated
+.factorypath
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Java
+*.class
+*.jar
+*.log
+
+# Application
+*.properties.local
+.env
+.env.local
+
