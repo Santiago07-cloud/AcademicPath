@@ -16,7 +16,13 @@ public class UsuarioMateriaResponse {
     private Long id;
     private Long usuarioId;
     private Long materiaId;
+
+    // Objeto materia completo para que el frontend pueda mostrar código y créditos
+    private MateriaInfo materia;
+
+    // Mantener campo plano para compatibilidad
     private String materiaNombre;
+
     private Long profesorId;
     private String profesorNombre;
     private Integer semestre;
@@ -24,5 +30,16 @@ public class UsuarioMateriaResponse {
     private String estado;
     private Double notaFinal;
     private LocalDateTime fechaCreacion;
-}
 
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class MateriaInfo {
+        private Long id;
+        private String codigo;
+        private String nombre;
+        private Integer creditos;
+        private String descripcion;
+    }
+}

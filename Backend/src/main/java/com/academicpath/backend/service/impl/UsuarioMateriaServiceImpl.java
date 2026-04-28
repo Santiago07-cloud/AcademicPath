@@ -48,16 +48,26 @@ public class UsuarioMateriaServiceImpl implements UsuarioMateriaService {
         Materias materia = materiasRepository.findById(request.getMateriaId())
                 .orElseThrow(() -> new ResourceNotFoundException("Materia no encontrada con id: " + request.getMateriaId()));
 
-        Profesores profesor = profesoresRepository.findById(request.getProfesorId())
-                .orElseThrow(() -> new ResourceNotFoundException("Profesor no encontrado con id: " + request.getProfesorId()));
+        // Profesor es opcional
+        Profesores profesor = null;
+        if (request.getProfesorId() != null) {
+            profesor = profesoresRepository.findById(request.getProfesorId())
+                    .orElse(null);
+        }
 
+        // Verificar si ya está inscrito
         if (usuarioMateriasRepository.findByUsuarioIdAndMateriaId(request.getUsuarioId(), request.getMateriaId()).isPresent()) {
             throw new UsuarioException("El usuario ya está inscrito en esta materia");
         }
 
+        // Verificar prerrequisitos (solo si existen prerrequisitos definidos)
         if (!prerrequisitosService.verificarPrerrequisitosCompletos(request.getUsuarioId(), request.getMateriaId())) {
             throw new UsuarioException("El usuario no cumple con los prerrequisitos de esta materia");
         }
+
+        String estado = (request.getEstado() != null && !request.getEstado().isBlank())
+                ? request.getEstado()
+                : "CURSANDO";
 
         UsuarioMaterias usuarioMateria = UsuarioMaterias.builder()
                 .usuario(usuario)
@@ -65,15 +75,16 @@ public class UsuarioMateriaServiceImpl implements UsuarioMateriaService {
                 .profesor(profesor)
                 .semestre(request.getSemestre())
                 .anio(request.getAnio())
-                .estado("CURSANDO")
-                .notaFinal(0.0)
+                .estado(estado)
+                .notaFinal(request.getNotaFinal() != null ? request.getNotaFinal() : 0.0)
                 .build();
 
-        UsuarioMaterias usuarioMateriaGuardada = usuarioMateriasRepository.save(usuarioMateria);
-        return mapToResponse(usuarioMateriaGuardada);
+        UsuarioMaterias guardada = usuarioMateriasRepository.save(usuarioMateria);
+        return mapToResponse(guardada);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UsuarioMateriaResponse obtenerPorId(Long id) {
         UsuarioMaterias usuarioMateria = usuarioMateriasRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario-Materia no encontrada con id: " + id));
@@ -81,6 +92,7 @@ public class UsuarioMateriaServiceImpl implements UsuarioMateriaService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<UsuarioMateriaResponse> obtenerPorUsuario(Long usuarioId) {
         return usuarioMateriasRepository.findByUsuarioId(usuarioId)
                 .stream()
@@ -94,15 +106,27 @@ public class UsuarioMateriaServiceImpl implements UsuarioMateriaService {
         UsuarioMaterias usuarioMateria = usuarioMateriasRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario-Materia no encontrada con id: " + id));
 
-        Profesores profesor = profesoresRepository.findById(request.getProfesorId())
-                .orElseThrow(() -> new ResourceNotFoundException("Profesor no encontrado con id: " + request.getProfesorId()));
+        // Profesor opcional en actualización
+        if (request.getProfesorId() != null) {
+            Profesores profesor = profesoresRepository.findById(request.getProfesorId()).orElse(null);
+            usuarioMateria.setProfesor(profesor);
+        }
 
-        usuarioMateria.setProfesor(profesor);
-        usuarioMateria.setSemestre(request.getSemestre());
-        usuarioMateria.setAnio(request.getAnio());
+        if (request.getSemestre() != null) {
+            usuarioMateria.setSemestre(request.getSemestre());
+        }
+        if (request.getAnio() != null) {
+            usuarioMateria.setAnio(request.getAnio());
+        }
+        if (request.getEstado() != null) {
+            usuarioMateria.setEstado(request.getEstado());
+        }
+        if (request.getNotaFinal() != null) {
+            usuarioMateria.setNotaFinal(request.getNotaFinal());
+        }
 
-        UsuarioMaterias usuarioMateriaActualizada = usuarioMateriasRepository.save(usuarioMateria);
-        return mapToResponse(usuarioMateriaActualizada);
+        UsuarioMaterias actualizada = usuarioMateriasRepository.save(usuarioMateria);
+        return mapToResponse(actualizada);
     }
 
     @Override
@@ -113,20 +137,28 @@ public class UsuarioMateriaServiceImpl implements UsuarioMateriaService {
         usuarioMateriasRepository.delete(usuarioMateria);
     }
 
-    private UsuarioMateriaResponse mapToResponse(UsuarioMaterias usuarioMateria) {
+    private UsuarioMateriaResponse mapToResponse(UsuarioMaterias um) {
+        UsuarioMateriaResponse.MateriaInfo materiaInfo = UsuarioMateriaResponse.MateriaInfo.builder()
+                .id(um.getMateria().getId())
+                .codigo(um.getMateria().getCodigo())
+                .nombre(um.getMateria().getNombre())
+                .creditos(um.getMateria().getCreditos())
+                .descripcion(um.getMateria().getDescripcion())
+                .build();
+
         return UsuarioMateriaResponse.builder()
-                .id(usuarioMateria.getId())
-                .usuarioId(usuarioMateria.getUsuario().getId())
-                .materiaId(usuarioMateria.getMateria().getId())
-                .materiaNombre(usuarioMateria.getMateria().getNombre())
-                .profesorId(usuarioMateria.getProfesor().getId())
-                .profesorNombre(usuarioMateria.getProfesor().getNombre())
-                .semestre(usuarioMateria.getSemestre())
-                .anio(usuarioMateria.getAnio())
-                .estado(usuarioMateria.getEstado())
-                .notaFinal(usuarioMateria.getNotaFinal())
-                .fechaCreacion(usuarioMateria.getFechaCreacion())
+                .id(um.getId())
+                .usuarioId(um.getUsuario().getId())
+                .materiaId(um.getMateria().getId())
+                .materia(materiaInfo)
+                .materiaNombre(um.getMateria().getNombre())
+                .profesorId(um.getProfesor() != null ? um.getProfesor().getId() : null)
+                .profesorNombre(um.getProfesor() != null ? um.getProfesor().getNombre() : null)
+                .semestre(um.getSemestre())
+                .anio(um.getAnio())
+                .estado(um.getEstado())
+                .notaFinal(um.getNotaFinal())
+                .fechaCreacion(um.getFechaCreacion())
                 .build();
     }
 }
-

@@ -6,7 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Data
 @NoArgsConstructor
@@ -17,8 +17,8 @@ public class ActividadRequest {
     @NotNull(message = "El ID de usuario-materia es requerido")
     private Long usuarioMateriaId;
 
-    @NotBlank(message = "El título de la actividad es requerido")
-    @Size(min = 2, max = 100, message = "El título debe tener entre 2 y 100 caracteres")
+    @NotBlank(message = "El titulo de la actividad es requerido")
+    @Size(min = 2, max = 100, message = "El titulo debe tener entre 2 y 100 caracteres")
     private String titulo;
 
     @NotBlank(message = "El tipo de actividad es requerido")
@@ -30,10 +30,9 @@ public class ActividadRequest {
     @DecimalMax(value = "100.0", message = "El peso no puede exceder 100")
     private Double peso;
 
-    @NotNull(message = "La nota máxima es requerida")
-    @DecimalMin(value = "0.1", message = "La nota máxima debe ser mayor a 0")
+    @NotNull(message = "La nota maxima es requerida")
+    @DecimalMin(value = "0.1", message = "La nota maxima debe ser mayor a 0")
     private Double notaMaxima;
 
-    private LocalDateTime fechaEntrega;
+    private LocalDate fechaEntrega;
 }
-

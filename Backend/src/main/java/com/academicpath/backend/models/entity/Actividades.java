@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Set;
 
@@ -13,10 +14,12 @@ import java.util.Set;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class Actividades {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -36,7 +39,7 @@ public class Actividades {
     @Column(nullable = false)
     private Double notaMaxima;
 
-    private LocalDateTime fechaEntrega;
+    private LocalDate fechaEntrega;
 
     @CreationTimestamp
     @Column(name = "fecha_creacion", nullable = false, updatable = false)
