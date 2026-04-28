@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/usuario-materias")
+@RequestMapping("/usuario-materias")
 @Tag(name = "Usuario Materias", description = "Gestión de inscripción de materias")
 @SecurityRequirement(name = "bearerAuth")
 public class UsuarioMateriaController {

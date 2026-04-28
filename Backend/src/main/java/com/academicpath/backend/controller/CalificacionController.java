@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/calificaciones")
+@RequestMapping("/calificaciones")
 @Tag(name = "Calificaciones", description = "Gestión de calificaciones")
 @SecurityRequirement(name = "bearerAuth")
 public class CalificacionController {

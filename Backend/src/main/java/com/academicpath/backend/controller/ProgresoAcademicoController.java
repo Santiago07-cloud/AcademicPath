@@ -11,7 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/progreso")
+@RequestMapping("/progreso")
 @Tag(name = "Progreso Académico", description = "Gestión del progreso académico")
 @SecurityRequirement(name = "bearerAuth")
 public class ProgresoAcademicoController {

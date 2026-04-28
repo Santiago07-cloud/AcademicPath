@@ -14,7 +14,7 @@ import java.util.Map;
 import java.util.Set;
 
 @RestController
-@RequestMapping("/api/prerrequisitos")
+@RequestMapping("/prerrequisitos")
 @Tag(name = "Prerrequisitos", description = "Gestión de prerrequisitos")
 @SecurityRequirement(name = "bearerAuth")
 public class PrerrequisitoController {
