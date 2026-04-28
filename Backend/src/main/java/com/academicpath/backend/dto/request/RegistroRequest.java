@@ -30,12 +30,10 @@ public class RegistroRequest {
              message = "La contraseña debe contener al menos una mayúscula, una minúscula y un dígito")
     private String contrasena;
 
-    @NotBlank(message = "La universidad es requerida")
-    @Size(min = 2, max = 100, message = "La universidad debe tener entre 2 y 100 caracteres")
+    @Size(max = 100, message = "La universidad no puede superar 100 caracteres")
     private String universidad;
 
-    @NotBlank(message = "La carrera es requerida")
-    @Size(min = 2, max = 100, message = "La carrera debe tener entre 2 y 100 caracteres")
+    @Size(max = 100, message = "La carrera no puede superar 100 caracteres")
     private String carrera;
 }
 
