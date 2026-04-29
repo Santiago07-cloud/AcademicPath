@@ -1,10 +1,28 @@
-# AcademicPath
+# 🎓 AcademicPath
 
-Plataforma académica para la gestión integral de rutas de aprendizaje y seguimiento de estudiantes.
+**Plataforma académica para la gestión integral de rutas de aprendizaje y seguimiento de estudiantes.**
+
+---
 
 ## 📋 Descripción
 
-AcademicPath es una aplicación de backend desarrollada con **Spring Boot** que proporciona servicios API para gestionar usuarios, autenticación y datos académicos. La arquitectura sigue patrones profesionales con capas de DAO, Manager y Service para garantizar escalabilidad y mantenibilidad.
+AcademicPath es una aplicación de backend desarrollada con **Spring Boot 3.5.13** que proporciona servicios API REST para gestionar usuarios, autenticación JWT, materias, prerrequisitos y progreso académico. 
+
+La arquitectura sigue patrones profesionales con capas de:
+- **DAO** - Acceso a datos
+- **Manager** - Lógica de negocio
+- **Service** - Servicios de aplicación
+- **Controller** - Endpoints REST
+
+### ✨ Características Principales
+- ✅ Autenticación y autorización con JWT
+- ✅ Gestión completa de usuarios y perfiles
+- ✅ Administración de materias y prerequisitos
+- ✅ Seguimiento de progreso académico
+- ✅ Documentación automática con Swagger/OpenAPI
+- ✅ Base de datos PostgreSQL (Supabase)
+- ✅ Tests unitarios con JUnit 5 y Mockito
+- ✅ Validaciones con Jakarta Bean Validation
 
 ## 🏗️ Estructura del Proyecto
 
@@ -52,14 +70,35 @@ cd AcademicPath
 
 ### 2. Configurar la Base de Datos
 
+**La aplicación está configurada para usar PostgreSQL en Supabase.**
+
 Edita el archivo `Backend/src/main/resources/application.properties`:
 
 ```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/academic_path
-spring.datasource.username=root
-spring.datasource.password=tu_contraseña
-spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+# Base de Datos PostgreSQL (Supabase)
+spring.datasource.url=jdbc:postgresql://db.wponlgsvcdpobxdhguxh.supabase.co:5432/postgres
+spring.datasource.username=postgres
+spring.datasource.password=gCBicI6Xxwzw8yFs
+spring.datasource.driver-class-name=org.postgresql.Driver
+
+# JPA/Hibernate
 spring.jpa.hibernate.ddl-auto=update
+spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
+spring.jpa.show-sql=false
+
+# JWT
+jwt.secret=tu-secreto-super-seguro-minimo-32-caracteres-aqui
+jwt.expiration=86400000
+
+# Server
+server.port=8080
+server.servlet.context-path=/api
+```
+
+> **⚠️ Nota de Seguridad**: No incluyas contraseñas en el repositorio. Usa variables de entorno en producción:
+```bash
+export DB_PASSWORD=tu_contraseña
+export JWT_SECRET=tu_secreto_seguro
 ```
 
 ### 3. Compilar y Ejecutar
@@ -98,6 +137,41 @@ Contraseña: admin123
 ## 🏭 Tecnologías Utilizadas
 
 - **Spring Boot 3.5.13** - Framework principal
+- **Spring Security** - Autenticación y autorización
+- **Spring Data JPA** - Acceso a datos ORM
+- **PostgreSQL** - Base de datos relacional
+- **JWT (JSON Web Tokens)** - Autenticación sin estado
+- **Swagger/OpenAPI 3.0** - Documentación de API
+- **MapStruct** - Mapeo de DTOs
+- **Lombok** - Reducir boilerplate
+- **JUnit 5** - Framework de testing
+- **Mockito** - Mock objects para testing
+- **Maven** - Gestor de dependencias
+
+## 👥 Colaboradores
+
+| Nombre | Rol | GitHub |
+|--------|-----|--------|
+| Santiago | Desarrollador Principal | [@Santiago007-cloud](https://github.com/Santiago007-cloud) |
+| YONETRO | Colaborador | [@YONETRO](https://github.com/YONETRO) |
+
+## 🤝 Contribuir
+
+Las contribuciones son bienvenidas. Por favor:
+
+1. Fork el repositorio
+2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. Push a la rama (`git push origin feature/AmazingFeature`)
+5. Abre un Pull Request
+
+## 📝 Licencia
+
+Este proyecto está bajo la licencia MIT. Ver archivo LICENSE para más detalles.
+
+## 📧 Contacto
+
+Para preguntas o sugerencias, contacta a través de GitHub Issues.
 - **Spring Security** - Autenticación y autorización
 - **Spring Data JPA** - Acceso a datos
 - **MySQL/PostgreSQL** - Base de datos
