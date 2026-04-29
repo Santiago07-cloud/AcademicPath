@@ -65,20 +65,34 @@ mvnw.cmd test              # Windows
 Edita `src/main/resources/application.properties`:
 
 ```properties
-# Puerto del servidor
-server.port=8080
-
-# Base de datos
-spring.datasource.url=jdbc:mysql://localhost:3306/academic_path
-spring.datasource.username=root
-spring.datasource.password=contraseña
-spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+# Base de Datos PostgreSQL (Supabase)
+spring.datasource.url=jdbc:postgresql://db.wponlgsvcdpobxdhguxh.supabase.co:5432/postgres
+spring.datasource.username=postgres
+spring.datasource.password=gCBicI6Xxwzw8yFs
+spring.datasource.driver-class-name=org.postgresql.Driver
 
 # JPA/Hibernate
 spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
-spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MySQL8Dialect
+spring.jpa.show-sql=false
+spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
+spring.jpa.open-in-view=false
+
+# JWT Configuration
+jwt.secret=${JWT_SECRET:tu-secreto-super-seguro-minimo-32-caracteres-aqui}
+jwt.expiration=${JWT_EXPIRATION:86400000}
+
+# Server
+server.port=8080
+server.servlet.context-path=/api
+
+# Logging
+logging.level.root=INFO
+logging.level.com.academicpath=DEBUG
 ```
+
+### Perfil de Testing
+
+Para tests, el proyecto usa **H2 en memoria**. Ver `src/test/resources/application-test.properties`.
 
 ## 📚 Arquitectura
 
@@ -91,13 +105,95 @@ La aplicación sigue una arquitectura por capas:
 
 ## 🔗 Endpoints Disponibles
 
-Ver documentación en el README.md raíz.
+### 🔐 Autenticación
+```
+POST   /api/auth/register    - Registrar nuevo usuario
+POST   /api/auth/login       - Iniciar sesión
+```
+
+### 👥 Usuarios
+```
+GET    /api/usuarios         - Obtener todos los usuarios
+POST   /api/usuarios         - Crear nuevo usuario
+GET    /api/usuarios/{id}    - Obtener usuario por ID
+PUT    /api/usuarios/{id}    - Actualizar usuario
+DELETE /api/usuarios/{id}    - Eliminar usuario
+```
+
+### 📚 Materias
+```
+GET    /api/materias         - Listar todas las materias
+POST   /api/materias         - Crear nueva materia
+GET    /api/materias/{id}    - Obtener materia por ID
+PUT    /api/materias/{id}    - Actualizar materia
+DELETE /api/materias/{id}    - Eliminar materia
+```
+
+### 📋 Prerequisitos
+```
+GET    /api/prerequisitos           - Listar todos los prerequisitos
+POST   /api/prerequisitos           - Crear nuevo prerequisito
+GET    /api/prerequisitos/{id}      - Obtener prerequisito por ID
+DELETE /api/prerequisitos/{id}      - Eliminar prerequisito
+```
+
+### 📊 Progreso Académico
+```
+GET    /api/progreso              - Ver progreso académico
+POST   /api/progreso              - Crear progreso
+PUT    /api/progreso/{id}         - Actualizar progreso
+GET    /api/progreso/{usuarioId}  - Progreso de usuario específico
+```
+
+## 📖 Documentación
+
+La documentación interactiva está disponible en:
+- **Swagger UI**: http://localhost:8080/api/swagger-ui.html
+- **OpenAPI JSON**: http://localhost:8080/api/v3/api-docs
 
 ## 🛠️ Tecnologías
 
-- Spring Boot 3.5.13
-- Spring Security
-- Spring Data JPA
+- **Spring Boot 3.5.13** - Framework principal
+- **Spring Security** - Autenticación y autorización con JWT
+- **Spring Data JPA** - Acceso a datos con Hibernate
+- **PostgreSQL 42.7.10** - Base de datos relacional
+- **Swagger/OpenAPI 2.8.6** - Documentación API
+- **MapStruct 1.5.5** - Mapeo de DTOs
+- **Lombok** - Reducción de boilerplate
+- **JUnit 5** - Testing
+- **Mockito** - Mock objects
+- **Maven 3.6+** - Gestor de dependencias
+
+## ✅ Tests
+
+Ejecutar tests:
+```bash
+./mvnw test                # Linux/Mac
+mvnw.cmd test              # Windows
+```
+
+Tests incluidos:
+- ✅ `BackendApplicationTests` - Carga del contexto
+- ✅ `AuthControllerTest` - Tests de autenticación
+- ✅ `AuthServiceTest` - Servicio de autenticación
+- ✅ `MateriaServiceTest` - Servicio de materias
+- ✅ `PrerrequisitoServiceTest` - Servicio de prerequisitos
+
+## 📦 Compilación
+
+```bash
+# Compilar
+./mvnw clean compile -DskipTests   # Linux/Mac
+mvnw.cmd clean compile -DskipTests # Windows
+
+# Compilar e instalar
+./mvnw clean install   # Linux/Mac
+mvnw.cmd clean install # Windows
+
+# Build JAR
+./mvnw clean package   # Linux/Mac
+mvnw.cmd clean package # Windows
+```
 - MySQL 8.0+
 - Java 21
 - Maven 3.6+
