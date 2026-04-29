@@ -1,0 +1,229 @@
+<section class="surface-card panel-card agenda-panel">
+  <div class="section-header section-header--compact agenda-panel__header">
+    <div>
+      <p class="section-kicker">Agenda</p>
+      <h2 class="section-heading">Tareas, parciales y entregas</h2>
+      <p class="section-copy">
+        Registra tus pendientes, márcalos como completados y guarda todo localmente en este navegador.
+      </p>
+    </div>
+
+    @if (currentUser(); as usuario) {
+      <div class="agenda-kpis">
+        <article class="agenda-kpi">
+          <span>Total</span>
+          <strong>{{ resumen().total }}</strong>
+        </article>
+        <article class="agenda-kpi">
+          <span>Pendientes</span>
+          <strong>{{ resumen().pendientes }}</strong>
+        </article>
+        <article class="agenda-kpi">
+          <span>Vencidas</span>
+          <strong>{{ resumen().vencidas }}</strong>
+        </article>
+        <article class="agenda-kpi">
+          <span>Completadas</span>
+          <strong>{{ resumen().completadas }}</strong>
+        </article>
+      </div>
+    }
+  </div>
+
+  @if (currentUser(); as usuario) {
+    <div class="agenda-layout">
+      <form class="agenda-form" [formGroup]="taskForm" (ngSubmit)="submit()">
+        <div class="field-grid">
+          <label class="field">
+            <span class="field-label">Título</span>
+            <input class="field-input" type="text" placeholder="Parcial de Física" formControlName="titulo" />
+            @if (taskForm.controls.titulo.touched && taskForm.controls.titulo.invalid) {
+              <span class="field-error">Escribe un título corto y claro.</span>
+            }
+          </label>
+
+          <label class="field">
+            <span class="field-label">Materia</span>
+            <input type="hidden" formControlName="materia" />
+            <div class="select-shell" (click)="$event.stopPropagation()">
+              <button type="button" class="select-trigger" (click)="toggleMateriaDropdown()">
+                <span>{{ materiaSeleccionadaLabel() }}</span>
+                <i class="bi bi-chevron-down"></i>
+              </button>
+              @if (materiaDropdownOpen()) {
+                <div class="select-panel">
+                  <button type="button" class="select-option select-option--placeholder" (click)="closeMateriaDropdown()">
+                    Selecciona una materia
+                  </button>
+                  @for (materia of materias(); track materia.id) {
+                    <button type="button" class="select-option" (click)="selectMateria(materia)">
+                      <span>{{ materia.codigo }}</span>
+                      <span class="select-option__name">{{ materia.nombre }}</span>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+            @if (taskForm.controls.materia.touched && taskForm.controls.materia.invalid) {
+              <span class="field-error">Indica la materia o código del curso.</span>
+            }
+          </label>
+        </div>
+
+        <div class="field-grid">
+          <label class="field">
+            <span class="field-label">Fecha límite</span>
+            <input type="hidden" formControlName="fechaLimite" />
+            <div class="select-shell" (click)="$event.stopPropagation()">
+              <button type="button" class="select-trigger" (click)="toggleCalendar()">
+                <span>{{ calendarInputLabel() }}</span>
+                <i class="bi bi-calendar3"></i>
+              </button>
+              @if (calendarOpen()) {
+                <div class="select-panel calendar-panel">
+                  <div class="calendar-header">
+                    <button type="button" class="icon-button" (click)="prevMonth()" aria-label="Mes anterior">
+                      <i class="bi bi-chevron-left"></i>
+                    </button>
+                    <span>{{ calendarLabel() }}</span>
+                    <button type="button" class="icon-button" (click)="nextMonth()" aria-label="Mes siguiente">
+                      <i class="bi bi-chevron-right"></i>
+                    </button>
+                  </div>
+                  <div class="calendar-weekdays">
+                    <span>Do</span><span>Lu</span><span>Ma</span><span>Mi</span><span>Ju</span><span>Vi</span><span>Sa</span>
+                  </div>
+                  <div class="calendar-grid">
+                    @for (day of calendarDays(); track $index) {
+                      <button
+                        type="button"
+                        class="calendar-day"
+                        [class.calendar-day--empty]="!day.date"
+                        [class.calendar-day--today]="day.isToday"
+                        [class.calendar-day--selected]="day.isSelected"
+                        (click)="day.date ? selectCalendarDate(day.date) : null"
+                        [disabled]="!day.date"
+                      >
+                        {{ day.label }}
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </label>
+
+          <label class="field">
+            <span class="field-label">Prioridad</span>
+            <input type="hidden" formControlName="prioridad" />
+            <div class="select-shell" (click)="$event.stopPropagation()">
+              <button type="button" class="select-trigger" (click)="togglePrioridadDropdown()">
+                <span>{{ prioridadSeleccionadaLabel() }}</span>
+                <i class="bi bi-chevron-down"></i>
+              </button>
+              @if (prioridadDropdownOpen()) {
+                <div class="select-panel">
+                  @for (prioridad of prioridades; track prioridad) {
+                    <button type="button" class="select-option" (click)="selectPrioridad(prioridad)">
+                      <span>{{ prioridadOptionLabel(prioridad) }}</span>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          </label>
+        </div>
+
+        <label class="field">
+          <span class="field-label">Descripción</span>
+          <textarea
+            class="field-textarea"
+            rows="4"
+            placeholder="Notas rápidas, temas a repasar o entregables"
+            formControlName="descripcion"
+          ></textarea>
+        </label>
+
+        <p class="field-hint">
+          La información se guarda solo en este navegador para que la app funcione sin backend.
+        </p>
+
+        <button type="submit" class="primary-button">Agregar a la agenda</button>
+      </form>
+
+      <div class="agenda-board">
+        <div class="section-header section-header--compact agenda-board__header">
+          <div>
+            <p class="section-kicker">Próximos pasos</p>
+            <h3 class="section-heading">Lista priorizada</h3>
+          </div>
+
+          @if (siguienteTarea(); as siguiente) {
+            <span class="chip">Siguiente: {{ deadlineLabel(siguiente.fechaLimite) }}</span>
+          }
+        </div>
+
+        @if (tareas().length) {
+          <div class="agenda-list">
+            @for (task of tareas(); track task.id) {
+              <article class="agenda-card" [class.agenda-card--done]="task.estado === 'completada'" [class.agenda-card--late]="isOverdue(task)">
+                <div class="agenda-card__dot" [style.background]="priorityColor(task.prioridad)"></div>
+
+                <div class="agenda-card__copy">
+                  <div class="agenda-card__top">
+                    <span
+                      class="chip"
+                      [class.status--success]="task.estado === 'completada'"
+                      [class.status--danger]="isOverdue(task)"
+                      [class.status--warning]="!isOverdue(task) && task.estado !== 'completada'"
+                    >
+                      {{ statusLabel(task) }}
+                    </span>
+
+                    <span
+                      class="agenda-priority"
+                      [class.agenda-priority--alta]="task.prioridad === 'alta'"
+                      [class.agenda-priority--media]="task.prioridad === 'media'"
+                      [class.agenda-priority--baja]="task.prioridad === 'baja'"
+                    >
+                      {{ priorityLabel(task.prioridad) }}
+                    </span>
+                  </div>
+
+                  <h4>{{ task.titulo }}</h4>
+                  <p class="agenda-card__meta">{{ task.materia }} · vence {{ deadlineLabel(task.fechaLimite) }}</p>
+
+                  @if (task.descripcion) {
+                    <p class="agenda-card__description">{{ task.descripcion }}</p>
+                  }
+                </div>
+
+                <div class="agenda-card__actions">
+                  <button type="button" class="ghost-button" (click)="toggleTask(task.id)">
+                    {{ task.estado === 'completada' ? 'Reabrir' : 'Completar' }}
+                  </button>
+
+                  <button type="button" class="icon-button" (click)="removeTask(task.id)" aria-label="Eliminar tarea">
+                    <i class="bi bi-trash3"></i>
+                  </button>
+                </div>
+              </article>
+            }
+          </div>
+        } @else {
+          <div class="agenda-empty">
+            <i class="bi bi-calendar-check"></i>
+            <h3>Tu agenda está limpia</h3>
+            <p>Agrega tu primer parcial, taller o proyecto para empezar a organizarte.</p>
+          </div>
+        }
+      </div>
+    </div>
+  } @else {
+    <div class="agenda-empty agenda-empty--session">
+      <i class="bi bi-exclamation-triangle"></i>
+      <h3>No hay sesión activa</h3>
+      <p>Inicia sesión para guardar tus tareas y entregas.</p>
+    </div>
+  }
+</section>

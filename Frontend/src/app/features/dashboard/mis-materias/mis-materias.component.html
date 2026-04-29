@@ -1,0 +1,511 @@
+<!-- Vista: Lista de materias -->
+@if (vista() === 'lista') {
+  <div class="mm-shell">
+
+    <!-- Header -->
+    <div class="mm-header">
+      <div>
+        <span class="section-kicker">Materias</span>
+        <h2 class="section-heading">Mis materias inscritas</h2>
+        <p class="section-copy">Gestiona tus materias, actividades y calificaciones del semestre.</p>
+      </div>
+      <button class="btn btn-primary" (click)="abrirModalInscribir()">
+        <i class="bi bi-plus-lg"></i> Inscribir materia
+      </button>
+    </div>
+
+    @if (error()) {
+      <div class="feedback-banner feedback-banner--credentials">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        <div><strong>Error</strong><p>{{ error() }}</p></div>
+      </div>
+    }
+
+    <!-- Stats rápidas -->
+    <div class="mm-stats">
+      <div class="mm-stat-card">
+        <i class="bi bi-journals"></i>
+        <div>
+          <strong>{{ misInscripciones().length }}</strong>
+          <span>Materias</span>
+        </div>
+      </div>
+      <div class="mm-stat-card">
+        <i class="bi bi-play-circle"></i>
+        <div>
+          <strong>{{ materiasActivas() }}</strong>
+          <span>Activas</span>
+        </div>
+      </div>
+      <div class="mm-stat-card">
+        <i class="bi bi-award"></i>
+        <div>
+          <strong>{{ creditosTotales() }}</strong>
+          <span>Créditos</span>
+        </div>
+      </div>
+      <div class="mm-stat-card">
+        <i class="bi bi-star"></i>
+        <div>
+          <strong>{{ promedioGeneral() != null ? (promedioGeneral()!.toFixed(1)) : '—' }}</strong>
+          <span>Promedio</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lista -->
+    @if (cargando()) {
+      <div class="mm-loading">
+        <div class="spinner"></div>
+        <span>Cargando materias...</span>
+      </div>
+    } @else if (misInscripciones().length === 0) {
+      <div class="mm-empty">
+        <i class="bi bi-journals"></i>
+        <h3>No tienes materias inscritas</h3>
+        <p>Usa el boton "Inscribir materia" para agregar tu primera materia del semestre.</p>
+      </div>
+    } @else {
+      <div class="mm-grid">
+        @for (insc of misInscripciones(); track insc.id) {
+          <article class="mm-card" [class.mm-card--cerrada]="esCerrada(insc.estado)" (click)="verDetalle(insc)">
+
+            <!-- Sello de materia cerrada -->
+            @if (insc.estado === 'APROBADA') {
+              <div class="mm-card__sello mm-card__sello--aprobada">
+                <i class="bi bi-check-circle-fill"></i> Aprobada
+              </div>
+            } @else if (insc.estado === 'REPROBADA') {
+              <div class="mm-card__sello mm-card__sello--reprobada">
+                <i class="bi bi-x-circle-fill"></i> Reprobada
+              </div>
+            }
+
+            <div class="mm-card__head">
+              <div class="mm-card__icon">
+                <i class="bi bi-book"></i>
+              </div>
+              <span class="chip {{ estadoClass(insc.estado) }}">{{ insc.estado }}</span>
+            </div>
+
+            <div class="mm-card__body">
+              <p class="mm-card__code">{{ codigoMateria(insc.materiaId) }}</p>
+              <h3>{{ nombreMateria(insc.materiaId) }}</h3>
+              <p class="mm-card__meta">
+                <i class="bi bi-calendar3"></i> {{ insc.semestre }}° sem. {{ insc.anio }}
+                &nbsp;·&nbsp;
+                <i class="bi bi-award"></i> {{ insc.materia?.creditos ?? catalogo().find(m => m.id === insc.materiaId)?.creditos ?? '—' }} créditos
+              </p>
+            </div>
+
+            <div class="mm-card__foot">
+              @let notaCard = notaParaCard(insc);
+              <div class="mm-nota" [style.color]="notaCard != null && notaCard > 0 ? notaColor(notaCard) : 'var(--text-2)'">
+                <span>{{ esCerrada(insc.estado) ? 'Nota final' : 'Promedio actual' }}</span>
+                @if (notaCard != null && notaCard > 0) {
+                  <strong>{{ notaCard.toFixed(2) }}</strong>
+                } @else {
+                  <strong style="opacity:.35">—</strong>
+                }
+              </div>
+              <div class="mm-card__actions">
+                @if (esCursando(insc.estado)) {
+                  <button class="btn-icon-sm btn-icon-accent" title="Cerrar materia"
+                    (click)="$event.stopPropagation(); abrirModalCerrar(insc)">
+                    <i class="bi bi-flag-fill"></i>
+                  </button>
+                }
+                <button class="btn-icon-sm" title="Retirar materia"
+                  (click)="$event.stopPropagation(); retirarMateria(insc.id)">
+                  <i class="bi bi-trash3"></i>
+                </button>
+              </div>
+            </div>
+          </article>
+        }
+      </div>
+    }
+  </div>
+}
+
+<!-- Vista: Detalle de materia -->
+@if (vista() === 'detalle' && inscripcionActiva()) {
+  <div class="mm-detalle">
+
+    <div class="mm-detalle__header">
+      <button class="btn btn-ghost btn-back" (click)="volver()">
+        <i class="bi bi-arrow-left"></i> Volver
+      </button>
+      <div class="mm-detalle__title">
+        <p class="mm-card__code">{{ codigoMateria(inscripcionActiva()!.materiaId) }}</p>
+        <h2>{{ nombreMateria(inscripcionActiva()!.materiaId) }}</h2>
+        <div class="mm-detalle__badges">
+          <span class="chip {{ estadoClass(inscripcionActiva()!.estado) }}">{{ inscripcionActiva()!.estado }}</span>
+          <span class="chip">{{ inscripcionActiva()!.semestre }}° sem. {{ inscripcionActiva()!.anio }}</span>
+        </div>
+      </div>
+      <button class="btn btn-primary" (click)="abrirModalActividad()"
+        [disabled]="pesoCompleto()"
+        [title]="pesoCompleto() ? 'Ya se registraron actividades por el 100% del peso' : 'Agregar nueva actividad'">
+        <i class="bi bi-plus-lg"></i> Nueva actividad
+      </button>
+    </div>
+
+    <!-- Barra de peso acumulado -->
+    <div class="peso-tracker">
+      <div class="peso-tracker__head">
+        <span>Peso acumulado</span>
+        <strong [style.color]="pesoCompleto() ? 'var(--success)' : 'var(--text)'">{{ pesoAcumulado() }}% / 100%</strong>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" [style.width.%]="pesoAcumulado()" [class.progress-fill--full]="pesoCompleto()"></div>
+      </div>
+      @if (!pesoCompleto()) {
+        <p class="peso-tracker__hint">Faltan <strong>{{ pesoRestante() }}%</strong> por asignar a actividades.</p>
+      } @else {
+        <p class="peso-tracker__hint peso-tracker__hint--done"><i class="bi bi-check-circle-fill"></i> Peso completo — ya no se pueden agregar mas actividades.</p>
+      }
+    </div>
+
+    <!-- Resumen nota actual -->
+    @if (notaInscripcionActiva() != null) {
+      <div class="nota-resumen" [class.nota-resumen--definitiva]="pesoCompleto()">
+        <div class="nota-resumen__valor" [style.color]="notaColor(notaInscripcionActiva())">
+          {{ notaInscripcionActiva()!.toFixed(2) }}
+        </div>
+        <div>
+          <strong>{{ pesoCompleto() ? 'Nota definitiva' : 'Nota parcial' }}</strong>
+          <p>{{ pesoCompleto()
+            ? 'Nota final calculada sobre el 100% de las actividades.'
+            : 'Proyeccion sobre el ' + pesoAcumulado() + '% evaluado hasta ahora.' }}</p>
+          @if (!pesoCompleto() && notaMaximaPosible() != null) {
+            <p class="nota-maxima-posible">Nota maxima posible: <strong>{{ notaMaximaPosible()!.toFixed(2) }}</strong></p>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Actividades -->
+    @if (actividades().length === 0) {
+      <div class="mm-empty mm-empty--sm">
+        <i class="bi bi-clipboard-plus"></i>
+        <h3>Sin actividades registradas</h3>
+        <p>Agrega parciales, tareas, quizzes o proyectos para calcular tu nota.</p>
+      </div>
+    } @else {
+      <div class="act-list">
+        @for (act of actividades(); track act.id) {
+          <div class="act-item">
+            <div class="act-item__left">
+              <div class="act-item__tipo">{{ tipoLabel(act.tipo) }}</div>
+              <div class="act-item__info">
+                <strong>{{ act.titulo }}</strong>
+                <span>Peso: {{ act.peso }}% · Nota máx: {{ act.notaMaxima }}</span>
+                @if (act.fechaEntrega) {
+                  <span class="act-fecha"><i class="bi bi-calendar-event"></i> {{ act.fechaEntrega }}</span>
+                }
+              </div>
+            </div>
+
+            <div class="act-item__right">
+              @if (calificacionesPorActividad()[act.id]?.[0]; as cal) {
+                <div class="act-nota" [style.color]="notaColor(cal.nota, act.notaMaxima)">
+                  {{ cal.nota }}<span>/{{ act.notaMaxima }}</span>
+                </div>
+              } @else {
+                <span class="act-sin-nota">Sin nota</span>
+              }
+
+              <div class="act-actions">
+                <button class="btn-icon-sm btn-icon-accent" title="Registrar nota"
+                  (click)="abrirModalCalificacion(act)">
+                  <i class="bi bi-pencil-square"></i>
+                </button>
+                <button class="btn-icon-sm" title="Editar actividad"
+                  (click)="abrirModalActividad(act)">
+                  <i class="bi bi-pencil"></i>
+                </button>
+                <button class="btn-icon-sm btn-icon-danger" title="Eliminar"
+                  (click)="eliminarActividad(act.id)">
+                  <i class="bi bi-trash3"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+    }
+  </div>
+}
+
+<!-- Modal: Inscribir materia -->
+@if (mostrarModalInscribir()) {
+  <div class="modal-overlay" (click)="mostrarModalInscribir.set(false)">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Nueva materia</h3>
+        <button class="btn-icon-sm" (click)="mostrarModalInscribir.set(false)"><i class="bi bi-x-lg"></i></button>
+      </div>
+
+      <form [formGroup]="formInscribir" (ngSubmit)="inscribir()">
+
+        <p class="modal-section-label">Datos de la materia</p>
+
+        <div class="field-grid">
+          <label class="field">
+            <span class="field-label">Código</span>
+            <input class="field-input" type="text" formControlName="codigo"
+              placeholder="Ej: MAT101" style="text-transform:uppercase"/>
+          </label>
+          <label class="field">
+            <span class="field-label">Créditos</span>
+            <input class="field-input" type="number" formControlName="creditos" min="1" max="20"/>
+          </label>
+        </div>
+
+        <label class="field">
+          <span class="field-label">Nombre</span>
+          <input class="field-input" type="text" formControlName="nombre"
+            placeholder="Ej: Cálculo Diferencial"/>
+        </label>
+
+        <label class="field">
+          <span class="field-label">Descripción <span style="opacity:.5;font-size:.75rem">(opcional)</span></span>
+          <input class="field-input" type="text" formControlName="descripcion"
+            placeholder="Descripción breve de la materia"/>
+        </label>
+
+        <p class="modal-section-label" style="margin-top:1rem">Datos de inscripción</p>
+
+        <div class="field-grid">
+          <label class="field">
+            <span class="field-label">Semestre</span>
+            <input type="hidden" formControlName="semestre" />
+            <div class="select-shell" (click)="$event.stopPropagation()">
+              <button type="button" class="select-trigger" (click)="toggleSemestreDropdown()">
+                <span>{{ semestreSeleccionadoLabel() }}</span>
+                <i class="bi bi-chevron-down"></i>
+              </button>
+              @if (semestreDropdownOpen()) {
+                <div class="select-panel">
+                  @for (s of semestres; track s) {
+                    <button type="button" class="select-option" (click)="selectSemestre(s)">
+                      <span>{{ s }}°</span>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          </label>
+          <label class="field">
+            <span class="field-label">Año</span>
+            <input class="field-input" type="number" formControlName="anio" min="2020" max="2035"/>
+          </label>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="mostrarModalInscribir.set(false)">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="formInscribir.invalid">
+            <i class="bi bi-check-lg"></i> Crear e inscribir
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- Modal: Actividad -->
+@if (mostrarModalActividad()) {
+  <div class="modal-overlay" (click)="mostrarModalActividad.set(false)">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>{{ actividadSeleccionada() ? 'Editar actividad' : 'Nueva actividad' }}</h3>
+        <button class="btn-icon-sm" (click)="mostrarModalActividad.set(false)"><i class="bi bi-x-lg"></i></button>
+      </div>
+
+      <form [formGroup]="formActividad" (ngSubmit)="guardarActividad()">
+        <label class="field">
+          <span class="field-label">Título</span>
+          <input class="field-input" type="text" formControlName="titulo" placeholder="Ej: Primer parcial"/>
+        </label>
+
+        <div class="field-grid">
+          <label class="field">
+            <span class="field-label">Tipo</span>
+            <input type="hidden" formControlName="tipo" />
+            <div class="select-shell" (click)="$event.stopPropagation()">
+              <button type="button" class="select-trigger" (click)="toggleTipoDropdown()">
+                <span>{{ tipoSeleccionadoLabel() }}</span>
+                <i class="bi bi-chevron-down"></i>
+              </button>
+              @if (tipoDropdownOpen()) {
+                <div class="select-panel">
+                  @for (t of tiposActividad; track t) {
+                    <button type="button" class="select-option" (click)="selectTipo(t)">
+                      <span>{{ tipoLabel(t) }}</span>
+                    </button>
+                  }
+                </div>
+              }
+            </div>
+          </label>
+          <label class="field">
+            <span class="field-label">Fecha entrega</span>
+            <input type="hidden" formControlName="fechaEntrega" />
+            <div class="select-shell" (click)="$event.stopPropagation()">
+              <button type="button" class="select-trigger" (click)="toggleActividadCalendar()">
+                <span>{{ actividadCalendarInputLabel() }}</span>
+                <i class="bi bi-calendar3"></i>
+              </button>
+              @if (actividadCalendarOpen()) {
+                <div class="select-panel calendar-panel">
+                  <div class="calendar-header">
+                    <button type="button" class="icon-button" (click)="actividadCalendarPrevMonth()" aria-label="Mes anterior">
+                      <i class="bi bi-chevron-left"></i>
+                    </button>
+                    <span>{{ actividadCalendarLabel() }}</span>
+                    <button type="button" class="icon-button" (click)="actividadCalendarNextMonth()" aria-label="Mes siguiente">
+                      <i class="bi bi-chevron-right"></i>
+                    </button>
+                  </div>
+                  <div class="calendar-weekdays">
+                    <span>Do</span><span>Lu</span><span>Ma</span><span>Mi</span><span>Ju</span><span>Vi</span><span>Sa</span>
+                  </div>
+                  <div class="calendar-grid">
+                    @for (day of actividadCalendarDays(); track $index) {
+                      <button
+                        type="button"
+                        class="calendar-day"
+                        [class.calendar-day--empty]="!day.date"
+                        [class.calendar-day--today]="day.isToday"
+                        [class.calendar-day--selected]="day.isSelected"
+                        (click)="day.date ? selectActividadDate(day.date) : null"
+                        [disabled]="!day.date"
+                      >
+                        {{ day.label }}
+                      </button>
+                    }
+                  </div>
+                </div>
+              }
+            </div>
+          </label>
+        </div>
+
+        <div class="field-grid">
+          <label class="field">
+            <span class="field-label">Peso (%)</span>
+            <input class="field-input" type="number" formControlName="peso" min="0" max="100" placeholder="20"/>
+          </label>
+          <label class="field">
+            <span class="field-label">Nota máxima</span>
+            <input class="field-input" type="number" formControlName="notaMaxima" min="0" placeholder="5"/>
+          </label>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="mostrarModalActividad.set(false)">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="formActividad.invalid">
+            <i class="bi bi-check-lg"></i> {{ actividadSeleccionada() ? 'Guardar cambios' : 'Crear actividad' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- Modal: Confirmacion -->
+@if (mostrarModalConfirmar()) {
+  <div class="modal-overlay" (click)="mostrarModalConfirmar.set(false)">
+    <div class="modal-card modal-card--sm modal-card--confirm" (click)="$event.stopPropagation()">
+      <div class="confirm-icon">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+      </div>
+      <h3>{{ confirmTitulo() }}</h3>
+      <p>{{ confirmMensaje() }}</p>
+      <div class="modal-footer modal-footer--center">
+        <button class="btn btn-secondary" (click)="mostrarModalConfirmar.set(false)">
+          Cancelar
+        </button>
+        <button class="btn btn-danger" (click)="ejecutarConfirmacion()">
+          <i class="bi bi-trash3"></i> Confirmar
+        </button>
+      </div>
+    </div>
+  </div>
+}
+@if (mostrarModalCalificacion()) {
+  <div class="modal-overlay" (click)="mostrarModalCalificacion.set(false)">
+    <div class="modal-card modal-card--sm" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Registrar nota</h3>
+        <button class="btn-icon-sm" (click)="mostrarModalCalificacion.set(false)"><i class="bi bi-x-lg"></i></button>
+      </div>
+
+      @if (actividadSeleccionada()) {
+        <div class="calificacion-info">
+          <strong>{{ actividadSeleccionada()!.titulo }}</strong>
+          <span>Nota máxima: {{ actividadSeleccionada()!.notaMaxima }} · Peso: {{ actividadSeleccionada()!.peso }}%</span>
+        </div>
+      }
+
+      <form [formGroup]="formCalificacion" (ngSubmit)="guardarCalificacion()">
+        <div class="field-grid">
+          <label class="field">
+            <span class="field-label">Nota obtenida</span>
+            <input class="field-input" type="number" formControlName="nota"
+              [min]="0" [max]="actividadSeleccionada()?.notaMaxima ?? 5"
+              step="0.1" placeholder="0.0"/>
+          </label>
+        </div>
+
+        <label class="field">
+          <span class="field-label">Retroalimentación <span style="opacity:.5;font-size:.75rem">(opcional)</span></span>
+          <textarea class="field-input" formControlName="retroalimentacion" rows="3"
+            placeholder="Notas del docente, temas a reforzar..."></textarea>
+        </label>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="mostrarModalCalificacion.set(false)">Cancelar</button>
+          <button type="submit" class="btn btn-primary" [disabled]="formCalificacion.invalid">
+            <i class="bi bi-check-lg"></i> {{ calificacionEditando() ? 'Actualizar nota' : 'Guardar nota' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+}
+
+<!-- Modal: Cerrar materia -->
+@if (mostrarModalCerrar() && inscripcionACerrar()) {
+  <div class="modal-overlay" (click)="mostrarModalCerrar.set(false)">
+    <div class="modal-card modal-card--sm" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Cerrar materia</h3>
+        <button class="btn-icon-sm" (click)="mostrarModalCerrar.set(false)"><i class="bi bi-x-lg"></i></button>
+      </div>
+
+      <div class="cerrar-materia-info">
+        <p class="cerrar-materia-nombre">{{ nombreMateria(inscripcionACerrar()!.materiaId) }}</p>
+        <p class="cerrar-materia-hint">Selecciona el resultado final de esta materia. Esta acción actualiza tu historial académico.</p>
+      </div>
+
+      <div class="cerrar-materia-opciones">
+        <button class="cerrar-opcion cerrar-opcion--aprobada" (click)="cerrarMateria('APROBADA')">
+          <i class="bi bi-check-circle-fill"></i>
+          <strong>Aprobada</strong>
+          <span>Cumplí los requisitos y gané la materia</span>
+        </button>
+        <button class="cerrar-opcion cerrar-opcion--reprobada" (click)="cerrarMateria('REPROBADA')">
+          <i class="bi bi-x-circle-fill"></i>
+          <strong>Reprobada</strong>
+          <span>No alcancé la nota mínima aprobatoria</span>
+        </button>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="mostrarModalCerrar.set(false)">Cancelar</button>
+      </div>
+    </div>
+  </div>
+}

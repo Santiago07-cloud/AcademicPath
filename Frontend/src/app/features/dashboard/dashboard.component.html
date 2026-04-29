@@ -1,0 +1,229 @@
+<main class="dashboard-shell" [class.dashboard-shell--menu-open]="menuAbierto()">
+  <aside class="dashboard-sidebar" [class.open]="menuAbierto()">
+    <div class="dashboard-brand">
+      <div class="dashboard-brand__logo">
+        <i class="bi bi-mortarboard-fill"></i>
+      </div>
+      <div class="dashboard-brand__mark">Academic<span>Path</span></div>
+      <p>Gestión académica inteligente</p>
+    </div>
+
+    <nav class="dashboard-nav">
+      @for (item of menuItems; track item.id) {
+        <button
+          type="button"
+          class="dashboard-nav__item"
+          [class.active]="seccionActiva() === item.id"
+          (click)="setSection(item.id)"
+        >
+          <i [class]="item.icon"></i>
+          <span>{{ item.label }}</span>
+        </button>
+      }
+    </nav>
+
+    @if (currentUser(); as usuario) {
+      <div class="dashboard-user-card">
+        <div class="dashboard-user-card__avatar">{{ usuarioIniciales() }}</div>
+        <div>
+          <strong>{{ usuario.nombres }} {{ usuario.apellidos }}</strong>
+          <span>{{ usuario.carrera || 'Ruta académica' }}</span>
+        </div>
+      </div>
+    }
+  </aside>
+
+  <div class="dashboard-backdrop" [class.visible]="menuAbierto()" (click)="closeSidebar()"></div>
+
+  <section class="dashboard-workspace">
+    <app-navbar
+      [titulo]="pageTitle()"
+      [usuario]="currentUser()"
+      [fecha]="fechaActual"
+      [menuAbierto]="menuAbierto()"
+      (toggleMenu)="toggleMenu()"
+      (cerrarSesion)="logout()"
+    />
+
+    <div class="dashboard-scroll">
+      @if (currentUser(); as usuario) {
+
+        <!-- Hero card siempre visible -->
+        <section class="hero-card surface-card">
+          <div>
+            <p class="section-kicker">Ruta académica</p>
+            <h2 class="hero-card__title">Bienvenido, {{ usuario.nombres }}.</h2>
+            <p class="hero-card__copy">
+              Tu panel académico. Usa el menú lateral para navegar entre materias, agenda y progreso.
+            </p>
+            <div class="hero-card__chips">
+              <span class="chip">{{ usuario.universidad || 'Universidad pendiente' }}</span>
+              <span class="chip">{{ usuario.carrera || 'Carrera pendiente' }}</span>
+              <span class="chip">{{ fechaActual }}</span>
+            </div>
+          </div>
+          <div class="hero-balance">
+            <div>
+              <span>Promedio</span>
+              <strong>{{ promedioDisplay() }}</strong>
+            </div>
+            <div>
+              <span>Avance</span>
+              <strong>{{ avanceDisplay() }}</strong>
+            </div>
+            <div>
+              <span>Pendientes</span>
+              <strong>{{ pendientes() }}</strong>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Resumen ── -->
+        @if (seccionActiva() === 'resumen') {
+          <section class="stats-grid">
+            @for (card of summaryCards(); track card.label) {
+              <article class="metric-card" [style.border-left-color]="card.color">
+                <p class="metric-card__label">
+                  <i [class]="card.icon"></i>
+                  {{ card.label }}
+                </p>
+                <p class="metric-card__value">{{ card.value }}</p>
+                <p class="metric-card__detail">{{ card.detail }}</p>
+              </article>
+            }
+          </section>
+
+          <section class="dashboard-grid">
+            <article class="surface-card panel-card">
+              <div class="section-header section-header--compact">
+                <div>
+                  <p class="section-kicker">Agenda</p>
+                  <h2 class="section-heading">Próximas entregas</h2>
+                </div>
+                <span class="chip">{{ pendientes() }} activas</span>
+              </div>
+
+              @if (tareasAgenda().length) {
+                <div class="activity-list">
+                  @for (tarea of tareasAgenda(); track tarea.id) {
+                    <article class="activity-item">
+                      <span class="activity-item__dot" [style.background]="priorityColor(tarea.prioridad)"></span>
+                      <div class="activity-item__copy">
+                        <strong>{{ tarea.titulo }}</strong>
+                        <span>{{ tarea.materia }} · vence {{ formatDeadline(tarea.fechaLimite) }}</span>
+                      </div>
+                      <span
+                        class="chip"
+                        [class.status--success]="tarea.estado === 'completada'"
+                        [class.status--danger]="isOverdue(tarea)"
+                        [class.status--warning]="!isOverdue(tarea) && tarea.estado !== 'completada'"
+                      >
+                        {{ statusLabel(tarea) }}
+                      </span>
+                    </article>
+                  }
+                </div>
+              } @else {
+                <div class="dashboard-empty-state">
+                  <i class="bi bi-calendar-x"></i>
+                  <h3>No tienes entregas cargadas</h3>
+                  <p>Tu agenda está vacía. Crea tu primera tarea para empezar.</p>
+                  <button type="button" class="primary-button" (click)="setSection('agenda')">
+                    Ir a la agenda
+                  </button>
+                </div>
+              }
+            </article>
+
+            <!-- Resumen rápido de progreso -->
+            <article class="surface-card panel-card">
+              <div class="section-header section-header--compact">
+                <div>
+                  <p class="section-kicker">Progreso</p>
+                  <h2 class="section-heading">Estado académico</h2>
+                </div>
+              </div>
+
+              @if (progreso(); as datos) {
+                <div class="small-stack">
+                  <div class="small-stat">
+                    <span>Promedio</span>
+                    <strong>{{ datos.promedio.toFixed(1) }}</strong>
+                  </div>
+                  <div class="small-stat">
+                    <span>Créditos aprobados</span>
+                    <strong>{{ datos.creditosAprobados }}/{{ datos.creditosTotales }}</strong>
+                  </div>
+                  <div class="small-stat">
+                    <span>Avance total</span>
+                    <strong>{{ avance() }}%</strong>
+                  </div>
+                  <div class="progress-track" style="margin-top:.5rem">
+                    <div class="progress-fill" [style.width.%]="avance()"></div>
+                  </div>
+                </div>
+              } @else {
+                <div class="dashboard-empty-state" style="min-height:8rem">
+                  <i class="bi bi-bar-chart-line"></i>
+                  <p>Ve a <strong>Materias</strong> para registrar tus datos académicos.</p>
+                  <button type="button" class="primary-button" (click)="setSection('materias')">
+                    Ir a materias
+                  </button>
+                </div>
+              }
+            </article>
+          </section>
+        }
+
+        <!-- ── Agenda ── -->
+        @else if (seccionActiva() === 'agenda') {
+          <app-agenda></app-agenda>
+        }
+
+        <!-- ── Materias ── (componente standalone autónomo) -->
+        @else if (seccionActiva() === 'materias') {
+          <section class="surface-card panel-card panel-card--full">
+            <app-mis-materias></app-mis-materias>
+          </section>
+        }
+
+        <!-- ── Progreso ── -->
+        @else if (seccionActiva() === 'progreso') {
+          <app-progreso [progreso]="progreso()" [pendientes]="pendientes()"></app-progreso>
+
+          <article class="surface-card panel-card">
+            <div class="section-header section-header--compact">
+              <div>
+                <p class="section-kicker">Ruta</p>
+                <h2 class="section-heading">Siguiente ciclo</h2>
+              </div>
+            </div>
+            <ol class="roadmap list-clean">
+              <li>
+                <strong>1. Revisar materias activas</strong>
+                <p>Comprueba notas, horarios y carga para el próximo corte.</p>
+              </li>
+              <li>
+                <strong>2. Validar sugerencias</strong>
+                <p>Selecciona las materias con prerrequisitos cumplidos.</p>
+              </li>
+              <li>
+                <strong>3. Cerrar pendientes</strong>
+                <p>Haz seguimiento a entregas urgentes antes de inscribir nuevas.</p>
+              </li>
+            </ol>
+          </article>
+        }
+
+
+      } @else {
+        <section class="surface-card empty-session">
+          <i class="bi bi-exclamation-triangle"></i>
+          <h2>No hay sesión activa</h2>
+          <p>Vuelve a iniciar sesión para continuar con Academic Path.</p>
+          <a class="primary-button" routerLink="/login">Ir a login</a>
+        </section>
+      }
+    </div>
+  </section>
+</main>

@@ -1,0 +1,205 @@
+<div class="auth-shell">
+
+  <!-- Panel izquierdo -->
+  <aside class="auth-brand">
+    <div class="auth-brand__inner">
+
+      <div class="auth-brand__logo">
+        <div class="logo-mark"><i class="bi bi-mortarboard-fill"></i></div>
+        <span>Academic Path</span>
+      </div>
+
+      <div class="auth-brand__headline">
+        <h1>Tu ruta academica comienza aqui.</h1>
+        <p>Crea tu cuenta en segundos y empieza a organizar tu semestre desde el primer dia.</p>
+      </div>
+
+      <div class="register-steps">
+        <div class="register-step">
+          <div class="register-step__num">1</div>
+          <div>
+            <strong>Crea tu cuenta</strong>
+            <p>Solo necesitas nombre, correo y contrasena. Universidad y carrera son opcionales.</p>
+          </div>
+        </div>
+        <div class="register-step">
+          <div class="register-step__num">2</div>
+          <div>
+            <strong>Configura tu semestre</strong>
+            <p>Agrega tus materias, profesores y actividades pendientes del periodo.</p>
+          </div>
+        </div>
+        <div class="register-step">
+          <div class="register-step__num">3</div>
+          <div>
+            <strong>Haz seguimiento</strong>
+            <p>Revisa tu promedio, creditos acumulados y sugerencias para el proximo semestre.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="auth-brand__stats">
+        <div class="stat-pill"><i class="bi bi-shield-check"></i><span>Contrasena cifrada</span></div>
+        <div class="stat-pill"><i class="bi bi-clock"></i><span>Registro en 30 seg</span></div>
+        <div class="stat-pill"><i class="bi bi-lock"></i><span>Sesion segura JWT</span></div>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- Panel derecho: formulario -->
+  <main class="auth-form-panel">
+    <div class="auth-form-card">
+
+      <div class="auth-form-card__logo--mobile">
+        <div class="logo-mark logo-mark--sm"><i class="bi bi-mortarboard-fill"></i></div>
+        <span>Academic Path</span>
+      </div>
+
+      <div class="auth-tabs">
+        <a class="auth-tab" routerLink="/login">Iniciar sesion</a>
+        <a class="auth-tab auth-tab--active" routerLink="/register">Crear cuenta</a>
+      </div>
+
+      <div class="auth-form-card__header">
+        <h2>Crea tu cuenta</h2>
+        <p>Completa tus datos para empezar.</p>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+
+        @if (successMessage()) {
+          <div class="feedback-banner feedback-banner--success">
+            <i class="bi bi-check-circle-fill"></i>
+            <div>
+              <strong>Registro exitoso</strong>
+              <p>{{ successMessage() }}</p>
+            </div>
+          </div>
+        }
+
+        @if (error()) {
+          <div class="feedback-banner"
+            [class.feedback-banner--duplicate]="errorType() === 'duplicate'"
+            [class.feedback-banner--network]="errorType() === 'network'"
+            [class.feedback-banner--credentials]="errorType() === 'generic' || errorType() === 'validation'">
+            <i class="bi"
+              [class.bi-person-x-fill]="errorType() === 'duplicate'"
+              [class.bi-wifi-off]="errorType() === 'network'"
+              [class.bi-exclamation-triangle-fill]="errorType() === 'generic' || errorType() === 'validation'">
+            </i>
+            <div>
+              <strong>
+                @if (errorType() === 'duplicate') { Correo ya registrado }
+                @else if (errorType() === 'network') { Sin conexion al servidor }
+                @else if (errorType() === 'validation') { Datos invalidos }
+                @else { Error al registrar }
+              </strong>
+              <p>{{ error() }}</p>
+              @if (errorType() === 'duplicate') {
+                <p class="feedback-hint">Ya tienes cuenta? <a routerLink="/login">Inicia sesion aqui</a></p>
+              }
+            </div>
+          </div>
+        }
+
+        <div class="field-grid">
+          <label class="field">
+            <span class="field-label">Nombres</span>
+            <input class="field-input"
+              [class.field-input--invalid]="form.controls.nombres.touched && form.controls.nombres.invalid"
+              type="text" formControlName="nombres"
+              placeholder="Juan Pablo" autocomplete="given-name"/>
+            @if (form.controls.nombres.touched && form.controls.nombres.invalid) {
+              <span class="field-error"><i class="bi bi-exclamation-circle"></i> Minimo 2 caracteres.</span>
+            }
+          </label>
+
+          <label class="field">
+            <span class="field-label">Apellidos</span>
+            <input class="field-input"
+              [class.field-input--invalid]="form.controls.apellidos.touched && form.controls.apellidos.invalid"
+              type="text" formControlName="apellidos"
+              placeholder="Montoya" autocomplete="family-name"/>
+            @if (form.controls.apellidos.touched && form.controls.apellidos.invalid) {
+              <span class="field-error"><i class="bi bi-exclamation-circle"></i> Minimo 2 caracteres.</span>
+            }
+          </label>
+        </div>
+
+        <label class="field">
+          <span class="field-label">Correo electronico</span>
+          <div class="field-input-wrap">
+            <i class="bi bi-envelope"></i>
+            <input class="field-input"
+              [class.field-input--invalid]="form.controls.correo.touched && form.controls.correo.invalid"
+              type="email" formControlName="correo"
+              placeholder="tu@correo.com" autocomplete="email"/>
+          </div>
+          @if (form.controls.correo.touched && form.controls.correo.invalid) {
+            <span class="field-error"><i class="bi bi-exclamation-circle"></i> Ingresa un correo valido.</span>
+          }
+        </label>
+
+        <div class="field-grid">
+          <label class="field">
+            <span class="field-label">Contrasena</span>
+            <div class="field-input-wrap">
+              <i class="bi bi-lock"></i>
+              <input class="field-input"
+                [class.field-input--invalid]="form.controls.contrasena.touched && form.controls.contrasena.invalid"
+                [type]="showPassword ? 'text' : 'password'"
+                formControlName="contrasena"
+                placeholder="Min. 8 caracteres" autocomplete="new-password"/>
+              <button type="button" class="field-toggle" (click)="showPassword = !showPassword" tabindex="-1">
+                <i class="bi" [class.bi-eye]="!showPassword" [class.bi-eye-slash]="showPassword"></i>
+              </button>
+            </div>
+            @if (form.controls.contrasena.touched && form.controls.contrasena.invalid) {
+              <span class="field-error"><i class="bi bi-exclamation-circle"></i> Min. 8 car., 1 mayuscula y 1 numero.</span>
+            }
+          </label>
+
+          <label class="field">
+            <span class="field-label">Confirmar contrasena</span>
+            <div class="field-input-wrap">
+              <i class="bi bi-lock-fill"></i>
+              <input class="field-input"
+                [class.field-input--invalid]="form.controls.confirmarContrasena.touched && (form.controls.confirmarContrasena.invalid || form.hasError('passwordMismatch'))"
+                type="password" formControlName="confirmarContrasena"
+                placeholder="Repite tu contrasena" autocomplete="new-password"/>
+            </div>
+            @if (form.controls.confirmarContrasena.touched && form.hasError('passwordMismatch')) {
+              <span class="field-error"><i class="bi bi-exclamation-circle"></i> Las contrasenas no coinciden.</span>
+            }
+          </label>
+        </div>
+
+        <div class="field-grid">
+          <label class="field">
+            <span class="field-label">Universidad <span class="optional-tag">Opcional</span></span>
+            <input class="field-input" type="text" formControlName="universidad"
+              placeholder="Ej: Universidad de Antioquia"/>
+          </label>
+
+          <label class="field">
+            <span class="field-label">Carrera <span class="optional-tag">Opcional</span></span>
+            <input class="field-input" type="text" formControlName="carrera"
+              placeholder="Ej: Ing. de Sistemas"/>
+          </label>
+        </div>
+
+        <button class="btn btn-primary btn-submit" type="submit"
+          [class.btn-loading]="loading()" [disabled]="loading() || form.invalid">
+          @if (!loading()) { <i class="bi bi-person-plus"></i> Crear cuenta }
+        </button>
+
+        <p class="auth-footer-link">
+          Ya tienes cuenta? <a routerLink="/login">Inicia sesion aqui</a>
+        </p>
+
+      </form>
+    </div>
+  </main>
+
+</div>

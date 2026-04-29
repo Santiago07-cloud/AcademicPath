@@ -1,0 +1,142 @@
+<div class="auth-shell">
+
+  <!-- Panel izquierdo: propuesta de valor real -->
+  <aside class="auth-brand">
+    <div class="auth-brand__inner">
+
+      <div class="auth-brand__logo">
+        <div class="logo-mark"><i class="bi bi-mortarboard-fill"></i></div>
+        <span>Academic Path</span>
+      </div>
+
+      <div class="auth-brand__headline">
+        <h1>Gestiona tu carrera universitaria en un solo lugar.</h1>
+        <p>Materias, notas, actividades y progreso academico, todo organizado y siempre disponible.</p>
+      </div>
+
+      <div class="feature-list">
+        <div class="feature-item">
+          <div class="feature-item__icon"><i class="bi bi-journals"></i></div>
+          <div>
+            <strong>Materias y notas</strong>
+            <p>Registra tus materias, calificaciones por actividad y nota final del semestre.</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-item__icon"><i class="bi bi-calendar2-check"></i></div>
+          <div>
+            <strong>Agenda de entregas</strong>
+            <p>Organiza parciales, trabajos y proyectos con prioridad y fecha limite.</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-item__icon"><i class="bi bi-graph-up-arrow"></i></div>
+          <div>
+            <strong>Progreso academico</strong>
+            <p>Visualiza tu promedio, creditos aprobados y ruta sugerida para el proximo semestre.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="auth-brand__stats">
+        <div class="stat-pill"><i class="bi bi-shield-check"></i><span>JWT + BCrypt</span></div>
+        <div class="stat-pill"><i class="bi bi-database"></i><span>Spring Boot</span></div>
+        <div class="stat-pill"><i class="bi bi-phone"></i><span>Responsive</span></div>
+      </div>
+
+    </div>
+  </aside>
+
+  <!-- Panel derecho: formulario -->
+  <main class="auth-form-panel">
+    <div class="auth-form-card">
+
+      <div class="auth-form-card__logo--mobile">
+        <div class="logo-mark logo-mark--sm"><i class="bi bi-mortarboard-fill"></i></div>
+        <span>Academic Path</span>
+      </div>
+
+      <div class="auth-tabs">
+        <a class="auth-tab auth-tab--active" routerLink="/login">Iniciar sesion</a>
+        <a class="auth-tab" routerLink="/register">Crear cuenta</a>
+      </div>
+
+      <div class="auth-form-card__header">
+        <h2>Bienvenido de nuevo</h2>
+        <p>Ingresa tus credenciales para continuar.</p>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+
+        @if (error()) {
+          <div class="feedback-banner"
+            [class.feedback-banner--credentials]="errorType() === 'credentials'"
+            [class.feedback-banner--network]="errorType() === 'network'"
+            [class.feedback-banner--server]="errorType() === 'server'">
+            <i class="bi"
+              [class.bi-exclamation-circle-fill]="errorType() === 'credentials'"
+              [class.bi-wifi-off]="errorType() === 'network'"
+              [class.bi-server]="errorType() === 'server'"
+              [class.bi-exclamation-triangle-fill]="errorType() === 'generic'">
+            </i>
+            <div>
+              <strong>
+                @if (errorType() === 'credentials') { Credenciales incorrectas }
+                @else if (errorType() === 'network') { Sin conexion al servidor }
+                @else if (errorType() === 'server') { Error del servidor }
+                @else { Error al iniciar sesion }
+              </strong>
+              <p>{{ error() }}</p>
+              @if (errorType() === 'credentials' && intentosFallidos() >= 2) {
+                <p class="feedback-hint">No recuerdas tu contrasena? <a routerLink="/register">Crea una cuenta nueva</a></p>
+              }
+            </div>
+          </div>
+        }
+
+        <label class="field">
+          <span class="field-label">Correo electronico</span>
+          <div class="field-input-wrap">
+            <i class="bi bi-envelope"></i>
+            <input class="field-input"
+              [class.field-input--invalid]="form.controls.correo.touched && form.controls.correo.invalid"
+              type="email" formControlName="correo"
+              placeholder="tu@correo.com" autocomplete="email"/>
+          </div>
+          @if (form.controls.correo.touched && form.controls.correo.invalid) {
+            <span class="field-error"><i class="bi bi-exclamation-circle"></i> Ingresa un correo valido.</span>
+          }
+        </label>
+
+        <label class="field">
+          <span class="field-label">Contrasena</span>
+          <div class="field-input-wrap">
+            <i class="bi bi-lock"></i>
+            <input class="field-input"
+              [class.field-input--invalid]="form.controls.contrasena.touched && form.controls.contrasena.invalid"
+              [type]="showPassword ? 'text' : 'password'"
+              formControlName="contrasena"
+              placeholder="Tu contrasena" autocomplete="current-password"/>
+            <button type="button" class="field-toggle" (click)="showPassword = !showPassword" tabindex="-1">
+              <i class="bi" [class.bi-eye]="!showPassword" [class.bi-eye-slash]="showPassword"></i>
+            </button>
+          </div>
+          @if (form.controls.contrasena.touched && form.controls.contrasena.invalid) {
+            <span class="field-error"><i class="bi bi-exclamation-circle"></i> La contrasena es obligatoria.</span>
+          }
+        </label>
+
+        <button class="btn btn-primary btn-submit" type="submit"
+          [class.btn-loading]="loading()" [disabled]="loading() || form.invalid">
+          @if (!loading()) { <i class="bi bi-box-arrow-in-right"></i> Ingresar }
+        </button>
+
+        <p class="auth-footer-link">
+          No tienes cuenta? <a routerLink="/register">Registrate gratis</a>
+        </p>
+
+      </form>
+    </div>
+  </main>
+
+</div>

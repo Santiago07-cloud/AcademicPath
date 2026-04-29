@@ -1,234 +1,59 @@
-# 🎓 AcademicPath
+# Academic Path
 
-**Plataforma académica para la gestión integral de rutas de aprendizaje y seguimiento de estudiantes.**
+Plataforma web para que estudiantes universitarios gestionen su ruta academica: materias, actividades, calificaciones y progreso academico.
 
----
-
-## 📋 Descripción
-
-AcademicPath es una aplicación de backend desarrollada con **Spring Boot 3.5.13** que proporciona servicios API REST para gestionar usuarios, autenticación JWT, materias, prerrequisitos y progreso académico. 
-
-La arquitectura sigue patrones profesionales con capas de:
-- **DAO** - Acceso a datos
-- **Manager** - Lógica de negocio
-- **Service** - Servicios de aplicación
-- **Controller** - Endpoints REST
-
-### ✨ Características Principales
-- ✅ Autenticación y autorización con JWT
-- ✅ Gestión completa de usuarios y perfiles
-- ✅ Administración de materias y prerequisitos
-- ✅ Seguimiento de progreso académico
-- ✅ Documentación automática con Swagger/OpenAPI
-- ✅ Base de datos PostgreSQL (Supabase)
-- ✅ Tests unitarios con JUnit 5 y Mockito
-- ✅ Validaciones con Jakarta Bean Validation
-
-## 🏗️ Estructura del Proyecto
+## Estructura del repositorio
 
 ```
 AcademicPath/
-├── Backend/                    # Aplicación backend
-│   ├── src/
-│   │   ├── main/
-│   │   │   ├── java/
-│   │   │   │   └── com/academicpath/backend/
-│   │   │   │       ├── BackendApplication.java
-│   │   │   │       ├── config/              # Configuración
-│   │   │   │       ├── dao/                 # Data Access Objects
-│   │   │   │       ├── manager/             # Lógica de negocio
-│   │   │   │       ├── models/              # Modelos y entidades
-│   │   │   │       └── services/            # Servicios
-│   │   │   └── resources/
-│   │   │       ├── application.properties
-│   │   │       └── schema.sql
-│   │   └── test/
-│   │       └── java/...       # Tests unitarios
-│   ├── pom.xml                # Configuración Maven
-│   ├── mvnw                   # Maven Wrapper (Linux)
-│   └── mvnw.cmd               # Maven Wrapper (Windows)
-├── .gitignore                 # Archivos ignorados por Git
-├── .gitattributes             # Atributos de Git
-└── README.md                  # Este archivo
-
+├── Backend/          # API REST - Spring Boot 3.5 + Java 17
+└── Frontend/         # SPA - Angular 17+ (standalone components)
 ```
 
-## 🚀 Requisitos
+## Tecnologias
 
-- **Java 21** o superior
-- **Maven 3.6.0** o superior
-- **Base de datos** (MySQL/PostgreSQL)
+| Capa | Tecnologia |
+|------|-----------|
+| Backend | Java 17 + Spring Boot 3.5 |
+| Seguridad | Spring Security + JWT |
+| Base de datos | MySQL 8 + Spring Data JPA |
+| API Docs | Swagger / OpenAPI 3 |
+| Frontend | Angular 17+ + TypeScript |
+| Estilos | SCSS con tema oscuro personalizado |
 
-## 🔧 Instalación y Configuración
+## Como ejecutar
 
-### 1. Clonar el Repositorio
-
-```bash
-git clone https://github.com/Santiago007-cloud/AcademicPath.git
-cd AcademicPath
-```
-
-### 2. Configurar la Base de Datos
-
-**La aplicación está configurada para usar PostgreSQL en Supabase.**
-
-Edita el archivo `Backend/src/main/resources/application.properties`:
-
-```properties
-# Base de Datos PostgreSQL (Supabase)
-spring.datasource.url=jdbc:postgresql://db.wponlgsvcdpobxdhguxh.supabase.co:5432/postgres
-spring.datasource.username=postgres
-spring.datasource.password=gCBicI6Xxwzw8yFs
-spring.datasource.driver-class-name=org.postgresql.Driver
-
-# JPA/Hibernate
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect
-spring.jpa.show-sql=false
-
-# JWT
-jwt.secret=tu-secreto-super-seguro-minimo-32-caracteres-aqui
-jwt.expiration=86400000
-
-# Server
-server.port=8080
-server.servlet.context-path=/api
-```
-
-> **⚠️ Nota de Seguridad**: No incluyas contraseñas en el repositorio. Usa variables de entorno en producción:
-```bash
-export DB_PASSWORD=tu_contraseña
-export JWT_SECRET=tu_secreto_seguro
-```
-
-### 3. Compilar y Ejecutar
-
+### Backend
 ```bash
 cd Backend
-./mvnw clean install          # Linux/Mac
-mvnw.cmd clean install        # Windows
-
-# Ejecutar la aplicación
-./mvnw spring-boot:run        # Linux/Mac
-mvnw.cmd spring-boot:run      # Windows
+./mvnw spring-boot:run
+# Disponible en http://localhost:8080/api
+# Swagger en http://localhost:8080/api/swagger-ui/index.html
 ```
 
-La aplicación estará disponible en `http://localhost:8080`
-
-## 📚 API Endpoints
-
-### Usuarios
-- `GET /api/usuarios` - Obtener todos los usuarios
-- `POST /api/usuarios` - Crear nuevo usuario
-- `GET /api/usuarios/{id}` - Obtener usuario por ID
-- `PUT /api/usuarios/{id}` - Actualizar usuario
-- `DELETE /api/usuarios/{id}` - Eliminar usuario
-
-## 🔐 Autenticación
-
-La aplicación implementa seguridad con **Spring Security**. Se requiere autenticación para acceder a los endpoints protegidos.
-
-### Credenciales por defecto:
-```
-Usuario: admin
-Contraseña: admin123
-```
-
-## 🏭 Tecnologías Utilizadas
-
-- **Spring Boot 3.5.13** - Framework principal
-- **Spring Security** - Autenticación y autorización
-- **Spring Data JPA** - Acceso a datos ORM
-- **PostgreSQL** - Base de datos relacional
-- **JWT (JSON Web Tokens)** - Autenticación sin estado
-- **Swagger/OpenAPI 3.0** - Documentación de API
-- **MapStruct** - Mapeo de DTOs
-- **Lombok** - Reducir boilerplate
-- **JUnit 5** - Framework de testing
-- **Mockito** - Mock objects para testing
-- **Maven** - Gestor de dependencias
-
-## 👥 Colaboradores
-
-| Nombre | Rol | GitHub |
-|--------|-----|--------|
-| Santiago | Desarrollador Principal | [@Santiago007-cloud](https://github.com/Santiago007-cloud) |
-| YONETRO | Colaborador | [@YONETRO](https://github.com/YONETRO) |
-
-## 🤝 Contribuir
-
-Las contribuciones son bienvenidas. Por favor:
-
-1. Fork el repositorio
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
-
-## 📝 Licencia
-
-Este proyecto está bajo la licencia MIT. Ver archivo LICENSE para más detalles.
-
-## 📧 Contacto
-
-Para preguntas o sugerencias, contacta a través de GitHub Issues.
-- **Spring Security** - Autenticación y autorización
-- **Spring Data JPA** - Acceso a datos
-- **MySQL/PostgreSQL** - Base de datos
-- **Maven** - Gestor de dependencias
-- **Java 21** - Lenguaje de programación
-
-## 📖 Documentación API
-
-La documentación OpenAPI está disponible en:
-- **Swagger UI:** `http://localhost:8080/swagger-ui.html`
-- **OpenAPI JSON:** `http://localhost:8080/v3/api-docs`
-
-## 🧪 Tests
-
-Ejecutar los tests unitarios:
-
+### Frontend
 ```bash
-cd Backend
-./mvnw test                   # Linux/Mac
-mvnw.cmd test                 # Windows
+cd Frontend
+npm install
+npx ng serve --port 4200
+# Disponible en http://localhost:4200
 ```
 
-## 📝 Git Workflow
+## Variables de entorno (Backend)
 
-### Archivos Ignorados
-El archivo `.gitignore` está configurado para excluir:
-- Carpetas `target/` y `build/`
-- IDE files (`.idea/`, `.vscode/`)
-- Archivos compilados y dependencias
-- Archivos de configuración sensibles (`.env`)
+Crear archivo `Backend/src/main/resources/application.yml` con:
 
-### Commits
-```bash
-git add .
-git commit -m "Descripción del cambio"
-git push origin main
+```yaml
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/ruta_academica
+    username: TU_USUARIO
+    password: TU_PASSWORD
+jwt:
+  secret: TU_SECRET_MINIMO_32_CARACTERES
 ```
 
-## 🤝 Contribuciones
+## Ramas
 
-Las contribuciones son bienvenidas. Por favor:
-
-1. Fork el repositorio
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
-
-## 📄 Licencia
-
-Este proyecto está bajo licencia MIT.
-
-## 👨‍💻 Autor
-
-**Santiago Alberto Sañudo**
-- GitHub: [@Santiago007-cloud](https://github.com/Santiago007-cloud)
-
-## 📞 Soporte
-
-Para reportar problemas o sugerencias, abre un [Issue](https://github.com/Santiago007-cloud/AcademicPath/issues).
+- `main` — codigo estable
+- `feature/solucionErroresBackend` — desarrollo activo

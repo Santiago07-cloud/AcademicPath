@@ -1,4 +1,4 @@
-﻿IDE y Editores
+# ── IDE y Editores ──────────────────────────────────────────────────────────
 .idea/
 .vscode/
 *.iws
@@ -14,42 +14,39 @@
 *.swp
 *.swo
 *~
-# Build
-target/
-build/
-dist/
-.mvn/wrapper/maven-wrapper.jar
-!**/src/main/**/target/
-!**/src/test/**/target/
-!**/src/main/**/build/
-!**/src/test/**/build/
-# NetBeans
-/nbproject/private/
-/nbbuild/
-/nbdist/
-/.nb-gradle/
-# Sistema Operativo
+
+# ── Backend ─────────────────────────────────────────────────────────────────
+Backend/target/
+Backend/build/
+!Backend/src/main/**/target/
+!Backend/src/test/**/target/
+Backend/.mvn/wrapper/maven-wrapper.jar
+
+# ── Frontend ─────────────────────────────────────────────────────────────────
+Frontend/node_modules/
+Frontend/dist/
+Frontend/.angular/
+Frontend/.env
+Frontend/.env.local
+
+# ── Sistema Operativo ────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
-# Dependencias
-/node_modules/
-# Logs
+
+# ── Logs ────────────────────────────────────────────────────────────────────
 *.log
 logs/
-# Archivos temporales
-*.tmp
-*.temp
-# Archivos de base de datos
-*.db
-*.sqlite
-# Archivos compilados
+
+# ── Compilados ──────────────────────────────────────────────────────────────
 *.class
 *.jar
 *.war
 *.ear
-*.zip
-*.tar.gz
-# Environment
+
+# ── Entorno ─────────────────────────────────────────────────────────────────
 .env
 .env.local
 .env.*.local
+Frontend/node_modules/
+Frontend/.angular/
+Frontend/dist/
