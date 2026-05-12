@@ -110,93 +110,77 @@ export class DashboardComponent implements OnInit {
 
   readonly proximaEntrega = computed(() => this.tareasAgenda().find((tarea) => tarea.estado === 'pendiente') ?? null);
 
-  readonly promedioDisplay = computed(() => this.progreso()?.promedio.toFixed(1) ?? '—');
-
-  readonly avanceDisplay = computed(() => (this.progreso() ? `${this.avance()}%` : '—'));
-
-  readonly avance = computed(() => {
-    const datos = this.progreso();
-
-    if (!datos?.creditosTotales) {
-      return 0;
-    }
-
-    return Math.round((datos.creditosAprobados / datos.creditosTotales) * 100);
-  });
-
-  readonly materiasActivas = computed(() =>
-    this.inscripciones().filter(i => i.estado === 'CURSANDO' || i.estado === 'activa').length
-  );
-
+  // Calcula promedio real desde inscripciones con nota registrada
   readonly promedioGeneral = computed(() => {
     const con = this.inscripciones().filter(i => i.notaFinal != null && i.notaFinal > 0);
     if (!con.length) return null;
     return con.reduce((s, i) => s + (i.notaFinal ?? 0), 0) / con.length;
   });
 
-  readonly summaryCards = computed<SummaryCard[]>(() => {
-    const datos = this.progreso();
-    const siguiente = this.proximaEntrega();
+  // Materias cursando activamente
+  readonly materiasActivas = computed(() =>
+    this.inscripciones().filter(i => i.estado === 'CURSANDO' || i.estado === 'activa').length
+  );
 
-    if (!datos) {
-      const promReal = this.promedioGeneral();
-      const nMaterias = this.inscripciones().length;
-      return [
-        {
-          label: 'Promedio actual',
-          value: promReal != null ? promReal.toFixed(1) : '—',
-          detail: promReal != null ? 'Calculado sobre tus materias con nota' : 'Aún no tienes notas registradas',
-          color: '#e4f0f2', icon: 'bi bi-stars',
-        },
-        {
-          label: 'Materias inscritas',
-          value: `${nMaterias}`,
-          detail: nMaterias ? `${this.materiasActivas()} cursando activamente` : 'Agrega tu primera materia',
-          color: '#aabbbf', icon: 'bi bi-book',
-        },
-        {
-          label: 'Pendientes',
-          value: `${this.pendientes()}`,
-          detail: this.pendientes() ? `${this.vencidas()} vencidas en la agenda` : 'Sin entregas registradas',
-          color: '#77888c', icon: 'bi bi-bell',
-        },
-        {
-          label: 'Próxima entrega',
-          value: siguiente ? this.formatDeadline(siguiente.fechaLimite) : 'Sin tareas',
-          detail: siguiente ? `${siguiente.materia} · ${siguiente.titulo}` : 'Crea tu primera tarea en la agenda',
-          color: '#d9e7ea', icon: 'bi bi-calendar2-event',
-        },
-      ];
-    }
+  // Avance = materias APROBADAS / total inscripciones × 100
+  readonly avance = computed(() => {
+    const total = this.inscripciones().length;
+    if (!total) return 0;
+    const aprobadas = this.inscripciones().filter(i => i.estado === 'APROBADA').length;
+    return Math.round((aprobadas / total) * 100);
+  });
+
+  // Siempre muestra el promedio real desde inscripciones (nunca 0.0 falso)
+  readonly promedioDisplay = computed(() => {
+    const prom = this.promedioGeneral();
+    return prom != null ? prom.toFixed(2) : '—';
+  });
+
+  readonly avanceDisplay = computed(() => {
+    const total = this.inscripciones().length;
+    if (!total) return '—';
+    return `${this.avance()}%`;
+  });
+
+  readonly summaryCards = computed<SummaryCard[]>(() => {
+    const siguiente = this.proximaEntrega();
+    const promReal  = this.promedioGeneral();
+    const nTotal    = this.inscripciones().length;
+    const nActivas  = this.materiasActivas();
+    const nAprobadas = this.inscripciones().filter(i => i.estado === 'APROBADA').length;
 
     return [
       {
-        label: 'Promedio PPA',
-        value: datos.promedio.toFixed(1),
-        detail: 'Meta sugerida: 4.5 para fortalecer tu ruta.',
-        color: '#e4f0f2',
-        icon: 'bi bi-stars',
+        label: 'Promedio actual',
+        value: promReal != null ? promReal.toFixed(2) : '—',
+        detail: promReal != null
+          ? `Calculado sobre ${this.inscripciones().filter(i => (i.notaFinal ?? 0) > 0).length} materia(s) con nota`
+          : 'Aún no tienes notas registradas',
+        color: '#e4f0f2', icon: 'bi bi-stars',
       },
       {
-        label: 'Créditos aprobados',
-        value: `${datos.creditosAprobados}/${datos.creditosTotales}`,
-        detail: `${this.avance()}% del plan académico total`,
-        color: '#aabbbf',
-        icon: 'bi bi-award',
+        label: 'Materias inscritas',
+        value: `${nTotal}`,
+        detail: nTotal
+          ? `${nActivas} cursando · ${nAprobadas} aprobadas`
+          : 'Agrega tu primera materia',
+        color: '#aabbbf', icon: 'bi bi-book',
       },
       {
         label: 'Pendientes',
         value: `${this.pendientes()}`,
-        detail: `${this.vencidas()} vencidas en la agenda`,
-        color: '#77888c',
-        icon: 'bi bi-bell',
+        detail: this.pendientes()
+          ? `${this.vencidas()} vencidas en la agenda`
+          : 'Sin entregas registradas',
+        color: '#77888c', icon: 'bi bi-bell',
       },
       {
         label: 'Próxima entrega',
         value: siguiente ? this.formatDeadline(siguiente.fechaLimite) : 'Sin tareas',
-        detail: siguiente ? `${siguiente.materia} · ${siguiente.titulo}` : 'Agrega parciales o proyectos',
-        color: '#d9e7ea',
-        icon: 'bi bi-calendar2-event',
+        detail: siguiente
+          ? `${siguiente.materia} · ${siguiente.titulo}`
+          : 'Crea tu primera tarea en la agenda',
+        color: '#d9e7ea', icon: 'bi bi-calendar2-event',
       },
     ];
   });
