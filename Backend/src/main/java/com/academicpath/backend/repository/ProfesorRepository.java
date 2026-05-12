@@ -9,4 +9,5 @@ import java.util.Optional;
 @Repository
 public interface ProfesorRepository extends JpaRepository<Profesor, Long> {
     Optional<Profesor> findByCorreo(String correo);
+    boolean existsByCorreo(String correo);
 }

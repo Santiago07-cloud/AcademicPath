@@ -2,10 +2,11 @@ package com.academicpath.backend.security;
 
 import com.academicpath.backend.entity.Usuario;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Collection;
-import java.util.HashSet;
+import java.util.List;
 
 public class UsuarioUserDetails implements UserDetails {
 
@@ -17,7 +18,7 @@ public class UsuarioUserDetails implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return new HashSet<>();
+        return List.of(new SimpleGrantedAuthority("ROLE_" + usuario.getRol().name()));
     }
 
     @Override

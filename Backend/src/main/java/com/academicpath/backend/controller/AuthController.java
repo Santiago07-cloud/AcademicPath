@@ -6,12 +6,16 @@ import com.academicpath.backend.dto.response.ApiResponse;
 import com.academicpath.backend.dto.response.LoginResponse;
 import com.academicpath.backend.dto.response.UsuarioResponse;
 import com.academicpath.backend.service.AuthService;
+import com.academicpath.backend.service.UsuarioService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -21,6 +25,9 @@ public class AuthController {
 
     @Autowired
     private AuthService authService;
+
+    @Autowired
+    private UsuarioService usuarioService;
 
     @PostMapping("/register")
     @Operation(summary = "Registrar nuevo usuario")
@@ -42,6 +49,19 @@ public class AuthController {
                 .success(true)
                 .message("Sesión iniciada exitosamente")
                 .data(loginResponse)
+                .build());
+    }
+
+    @GetMapping("/profile")
+    @Operation(summary = "Obtener perfil del usuario autenticado")
+    @SecurityRequirement(name = "bearerAuth")
+    public ResponseEntity<ApiResponse<UsuarioResponse>> profile() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        UsuarioResponse usuario = usuarioService.obtenerPorCorreo(auth.getName());
+        return ResponseEntity.ok(ApiResponse.<UsuarioResponse>builder()
+                .success(true)
+                .message("Perfil obtenido exitosamente")
+                .data(usuario)
                 .build());
     }
 }

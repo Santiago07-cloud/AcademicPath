@@ -14,6 +14,7 @@ import com.academicpath.backend.repository.ProfesorRepository;
 import com.academicpath.backend.repository.UsuarioMateriaRepository;
 import com.academicpath.backend.repository.UsuarioRepository;
 import com.academicpath.backend.service.PrerrequisitoService;
+import com.academicpath.backend.service.ProgresoAcademicoService;
 import com.academicpath.backend.service.UsuarioMateriaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -38,6 +39,9 @@ public class UsuarioMateriaServiceImpl implements UsuarioMateriaService {
 
     @Autowired
     private PrerrequisitoService prerrequisitosService;
+
+    @Autowired
+    private ProgresoAcademicoService progresoAcademicoService;
 
     @Autowired
     private UsuarioMateriaMapper usuarioMateriaMapper;
@@ -108,10 +112,19 @@ public class UsuarioMateriaServiceImpl implements UsuarioMateriaService {
         }
         if (request.getSemestre() != null) usuarioMateria.setSemestre(request.getSemestre());
         if (request.getAnio() != null) usuarioMateria.setAnio(request.getAnio());
+
+        boolean estadoCambio = request.getEstado() != null && !request.getEstado().equals(usuarioMateria.getEstado());
         if (request.getEstado() != null) usuarioMateria.setEstado(request.getEstado());
         if (request.getNotaFinal() != null) usuarioMateria.setNotaFinal(request.getNotaFinal());
 
-        return usuarioMateriaMapper.toResponse(usuarioMateriaRepository.save(usuarioMateria));
+        UsuarioMateriaResponse response = usuarioMateriaMapper.toResponse(usuarioMateriaRepository.save(usuarioMateria));
+
+        // Recalcular progreso si el estado cambió (ej. a APROBADO o REPROBADO)
+        if (estadoCambio) {
+            progresoAcademicoService.recalcularProgreso(usuarioMateria.getUsuario().getId());
+        }
+
+        return response;
     }
 
     @Override

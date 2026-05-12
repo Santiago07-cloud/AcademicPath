@@ -3,6 +3,11 @@ package com.academicpath.backend.controller;
 import com.academicpath.backend.dto.request.CalificacionRequest;
 import com.academicpath.backend.dto.response.ApiResponse;
 import com.academicpath.backend.dto.response.CalificacionResponse;
+import com.academicpath.backend.entity.Actividad;
+import com.academicpath.backend.entity.UsuarioMateria;
+import com.academicpath.backend.exception.ResourceNotFoundException;
+import com.academicpath.backend.repository.ActividadRepository;
+import com.academicpath.backend.security.SecurityUtils;
 import com.academicpath.backend.service.CalificacionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -24,9 +29,26 @@ public class CalificacionController {
     @Autowired
     private CalificacionService calificacionService;
 
+    @Autowired
+    private SecurityUtils securityUtils;
+
+    @Autowired
+    private ActividadRepository actividadRepository;
+
+    /**
+     * Resuelve el usuarioId dueño de una Actividad (via su UsuarioMateria) y valida ownership.
+     */
+    private void validarOwnershipPorActividad(Long actividadId) {
+        Actividad actividad = actividadRepository.findById(actividadId)
+                .orElseThrow(() -> new ResourceNotFoundException("Actividad no encontrada con id: " + actividadId));
+        UsuarioMateria um = actividad.getUsuarioMateria();
+        securityUtils.validarPropietario(um.getUsuario().getId());
+    }
+
     @PostMapping
     @Operation(summary = "Crear nueva calificación")
     public ResponseEntity<ApiResponse<CalificacionResponse>> crear(@Valid @RequestBody CalificacionRequest request) {
+        validarOwnershipPorActividad(request.getActividadId());
         CalificacionResponse calificacion = calificacionService.crear(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.<CalificacionResponse>builder()
@@ -40,6 +62,7 @@ public class CalificacionController {
     @Operation(summary = "Obtener calificación por ID")
     public ResponseEntity<ApiResponse<CalificacionResponse>> obtenerPorId(@PathVariable Long id) {
         CalificacionResponse calificacion = calificacionService.obtenerPorId(id);
+        validarOwnershipPorActividad(calificacion.getActividadId());
         return ResponseEntity.ok(ApiResponse.<CalificacionResponse>builder()
                 .success(true)
                 .message("Calificación obtenida exitosamente")
@@ -51,6 +74,7 @@ public class CalificacionController {
     @Operation(summary = "Obtener calificaciones por actividad")
     public ResponseEntity<ApiResponse<List<CalificacionResponse>>> obtenerPorActividad(
             @PathVariable Long actividadId) {
+        validarOwnershipPorActividad(actividadId);
         List<CalificacionResponse> calificaciones = calificacionService.obtenerPorActividad(actividadId);
         return ResponseEntity.ok(ApiResponse.<List<CalificacionResponse>>builder()
                 .success(true)
@@ -64,6 +88,8 @@ public class CalificacionController {
     public ResponseEntity<ApiResponse<CalificacionResponse>> actualizar(
             @PathVariable Long id,
             @Valid @RequestBody CalificacionRequest request) {
+        CalificacionResponse existing = calificacionService.obtenerPorId(id);
+        validarOwnershipPorActividad(existing.getActividadId());
         CalificacionResponse calificacion = calificacionService.actualizar(id, request);
         return ResponseEntity.ok(ApiResponse.<CalificacionResponse>builder()
                 .success(true)
@@ -74,12 +100,10 @@ public class CalificacionController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Eliminar calificación")
-    public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable Long id) {
+    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+        CalificacionResponse existing = calificacionService.obtenerPorId(id);
+        validarOwnershipPorActividad(existing.getActividadId());
         calificacionService.eliminar(id);
-        return ResponseEntity.ok(ApiResponse.<Void>builder()
-                .success(true)
-                .message("Calificación eliminada exitosamente")
-                .build());
+        return ResponseEntity.noContent().build();
     }
 }
-
