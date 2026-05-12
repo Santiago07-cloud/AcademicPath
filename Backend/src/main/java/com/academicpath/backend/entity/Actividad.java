@@ -1,0 +1,51 @@
+package com.academicpath.backend.entity;
+
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Set;
+
+@Entity
+@Table(name = "actividades")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+public class Actividad {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "usuario_materia_id", nullable = false)
+    @ToString.Exclude
+    private UsuarioMateria usuarioMateria;
+
+    @Column(nullable = false)
+    private String titulo;
+
+    @Column(nullable = false)
+    private String tipo;
+
+    @Column(nullable = false)
+    private Double peso;
+
+    @Column(nullable = false)
+    private Double notaMaxima;
+
+    private LocalDate fechaEntrega;
+
+    @CreationTimestamp
+    @Column(name = "fecha_creacion", nullable = false, updatable = false)
+    private LocalDateTime fechaCreacion;
+
+    @OneToMany(mappedBy = "actividad", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @ToString.Exclude
+    private Set<Calificacion> calificaciones;
+}

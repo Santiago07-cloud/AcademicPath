@@ -12,4 +12,3 @@ public interface ActividadService {
     ActividadResponse actualizar(Long id, ActividadRequest request);
     void eliminar(Long id);
 }
-

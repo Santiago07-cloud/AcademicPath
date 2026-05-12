@@ -12,4 +12,3 @@ public interface UsuarioMateriaService {
     UsuarioMateriaResponse actualizar(Long id, UsuarioMateriaRequest request);
     void eliminar(Long id);
 }
-
