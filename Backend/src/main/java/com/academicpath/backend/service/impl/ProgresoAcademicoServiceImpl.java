@@ -53,6 +53,7 @@ public class ProgresoAcademicoServiceImpl implements ProgresoAcademicoService {
         int creditosTotales = 0;
         int creditosAprobados = 0;
         double promedioTotal = 0.0;
+        int contadorAprobadas = 0;
 
         for (UsuarioMateria usuarioMateria : todasLasMaterias) {
             creditosTotales += usuarioMateria.getMateria().getCreditos();
@@ -60,10 +61,12 @@ public class ProgresoAcademicoServiceImpl implements ProgresoAcademicoService {
             if ("APROBADO".equals(usuarioMateria.getEstado())) {
                 creditosAprobados += usuarioMateria.getMateria().getCreditos();
                 promedioTotal += calcularPromedioPonderado(usuarioMateria);
+                contadorAprobadas++;
             }
         }
 
-        double promedioPonderado = todasLasMaterias.isEmpty() ? 0.0 : promedioTotal / todasLasMaterias.size();
+        // Dividir solo entre materias aprobadas, no entre todas las materias
+        double promedioPonderado = contadorAprobadas == 0 ? 0.0 : promedioTotal / contadorAprobadas;
 
         progreso.setCreditosTotales(creditosTotales);
         progreso.setCreditosAprobados(creditosAprobados);

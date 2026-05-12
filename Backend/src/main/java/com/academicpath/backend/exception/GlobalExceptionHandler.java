@@ -2,66 +2,74 @@ package com.academicpath.backend.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.context.request.WebRequest;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleResourceNotFoundException(ResourceNotFoundException ex, WebRequest request) {
-        return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), "Resource Not Found");
+        return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), "Recurso no encontrado");
     }
 
     @ExceptionHandler(UsuarioException.class)
     public ResponseEntity<ErrorResponse> handleUsuarioException(UsuarioException ex, WebRequest request) {
-        return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), "Usuario Error");
+        return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), "Error de usuario");
     }
 
     @ExceptionHandler(MateriaException.class)
     public ResponseEntity<ErrorResponse> handleMateriaException(MateriaException ex, WebRequest request) {
-        return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), "Materia Error");
+        return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), "Error de materia");
     }
 
     @ExceptionHandler(ActividadException.class)
     public ResponseEntity<ErrorResponse> handleActividadException(ActividadException ex, WebRequest request) {
-        return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), "Actividad Error");
+        return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), "Error de actividad");
     }
 
     @ExceptionHandler(CalificacionException.class)
     public ResponseEntity<ErrorResponse> handleCalificacionException(CalificacionException ex, WebRequest request) {
-        return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), "Calificacion Error");
+        return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), "Error de calificación");
     }
 
     @ExceptionHandler(UsernameNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleUsernameNotFoundException(UsernameNotFoundException ex, WebRequest request) {
-        return buildError(HttpStatus.UNAUTHORIZED, "Credenciales inválidas", "Authentication Failed");
+        return buildError(HttpStatus.UNAUTHORIZED, "Credenciales inválidas", "Autenticación fallida");
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDeniedException(AccessDeniedException ex, WebRequest request) {
+        return buildError(HttpStatus.FORBIDDEN, ex.getMessage(), "Acceso denegado");
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidationException(MethodArgumentNotValidException ex, WebRequest request) {
-        Map<String, String> errors = new HashMap<>();
-        ex.getBindingResult().getFieldErrors().forEach(error ->
-                errors.put(error.getField(), error.getDefaultMessage()));
+    public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException ex, WebRequest request) {
+        Map<String, String> erroresCampos = ex.getBindingResult().getFieldErrors()
+                .stream()
+                .collect(Collectors.toMap(
+                        FieldError::getField,
+                        fe -> fe.getDefaultMessage() != null ? fe.getDefaultMessage() : "Valor inválido",
+                        (a, b) -> a
+                ));
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", HttpStatus.BAD_REQUEST.value());
-        response.put("message", "Validación fallida");
-        response.put("errors", errors);
-        response.put("timestamp", System.currentTimeMillis());
+        String mensaje = erroresCampos.values().stream().findFirst()
+                .orElse("Validación fallida");
 
-        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+        return buildError(HttpStatus.BAD_REQUEST, mensaje, "Error de validación");
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGlobalException(Exception ex, WebRequest request) {
-        return buildError(HttpStatus.INTERNAL_SERVER_ERROR, "Ocurrió un error interno en el servidor", ex.getMessage());
+        return buildError(HttpStatus.INTERNAL_SERVER_ERROR, "Ocurrió un error interno en el servidor", "Error interno");
     }
 
     private ResponseEntity<ErrorResponse> buildError(HttpStatus status, String message, String error) {

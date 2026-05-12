@@ -11,6 +11,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,7 +26,8 @@ public class MateriaController {
     private MateriaService materiaService;
 
     @PostMapping
-    @Operation(summary = "Crear nueva materia")
+    @Operation(summary = "Crear nueva materia (solo ADMIN)")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<MateriaResponse>> crear(@Valid @RequestBody MateriaRequest request) {
         MateriaResponse materia = materiaService.crear(request);
         return ResponseEntity.status(HttpStatus.CREATED)
@@ -59,7 +61,8 @@ public class MateriaController {
     }
 
     @PutMapping("/{id}")
-    @Operation(summary = "Actualizar materia")
+    @Operation(summary = "Actualizar materia (solo ADMIN)")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<MateriaResponse>> actualizar(
             @PathVariable Long id,
             @Valid @RequestBody MateriaRequest request) {
@@ -72,13 +75,10 @@ public class MateriaController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(summary = "Eliminar materia")
-    public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable Long id) {
+    @Operation(summary = "Eliminar materia (solo ADMIN)")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
         materiaService.eliminar(id);
-        return ResponseEntity.ok(ApiResponse.<Void>builder()
-                .success(true)
-                .message("Materia eliminada exitosamente")
-                .build());
+        return ResponseEntity.noContent().build();
     }
 }
-

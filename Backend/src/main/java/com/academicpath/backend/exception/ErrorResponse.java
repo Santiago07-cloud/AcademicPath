@@ -3,8 +3,10 @@ package com.academicpath.backend.exception;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class ErrorResponse {
@@ -13,4 +15,3 @@ public class ErrorResponse {
     private String error;
     private long timestamp;
 }
-

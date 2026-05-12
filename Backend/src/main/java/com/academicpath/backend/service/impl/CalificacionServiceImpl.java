@@ -10,6 +10,7 @@ import com.academicpath.backend.mapper.CalificacionMapper;
 import com.academicpath.backend.repository.ActividadRepository;
 import com.academicpath.backend.repository.CalificacionRepository;
 import com.academicpath.backend.service.CalificacionService;
+import com.academicpath.backend.service.ProgresoAcademicoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +29,9 @@ public class CalificacionServiceImpl implements CalificacionService {
     @Autowired
     private CalificacionMapper calificacionMapper;
 
+    @Autowired
+    private ProgresoAcademicoService progresoAcademicoService;
+
     @Override
     @Transactional
     public CalificacionResponse crear(CalificacionRequest request) {
@@ -42,7 +46,13 @@ public class CalificacionServiceImpl implements CalificacionService {
                 .retroalimentacion(request.getRetroalimentacion())
                 .build();
 
-        return calificacionMapper.toResponse(calificacionRepository.save(calificacion));
+        CalificacionResponse response = calificacionMapper.toResponse(calificacionRepository.save(calificacion));
+
+        // Recalcular progreso académico automáticamente
+        Long usuarioId = actividad.getUsuarioMateria().getUsuario().getId();
+        progresoAcademicoService.recalcularProgreso(usuarioId);
+
+        return response;
     }
 
     @Override
@@ -73,7 +83,13 @@ public class CalificacionServiceImpl implements CalificacionService {
         calificacion.setNota(request.getNota());
         calificacion.setRetroalimentacion(request.getRetroalimentacion());
 
-        return calificacionMapper.toResponse(calificacionRepository.save(calificacion));
+        CalificacionResponse response = calificacionMapper.toResponse(calificacionRepository.save(calificacion));
+
+        // Recalcular progreso académico automáticamente
+        Long usuarioId = calificacion.getActividad().getUsuarioMateria().getUsuario().getId();
+        progresoAcademicoService.recalcularProgreso(usuarioId);
+
+        return response;
     }
 
     @Override

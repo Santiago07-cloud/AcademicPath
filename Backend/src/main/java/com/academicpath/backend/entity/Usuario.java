@@ -7,6 +7,7 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.Set;
+import com.academicpath.backend.entity.RolUsuario;
 
 @Entity
 @Table(name = "usuarios")
@@ -33,6 +34,10 @@ public class Usuario {
 
     @Column(nullable = false)
     private String contrasena;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private RolUsuario rol = RolUsuario.ESTUDIANTE;
 
     private String universidad;
 

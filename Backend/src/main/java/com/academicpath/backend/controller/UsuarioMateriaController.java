@@ -3,6 +3,7 @@ package com.academicpath.backend.controller;
 import com.academicpath.backend.dto.request.UsuarioMateriaRequest;
 import com.academicpath.backend.dto.response.ApiResponse;
 import com.academicpath.backend.dto.response.UsuarioMateriaResponse;
+import com.academicpath.backend.security.SecurityUtils;
 import com.academicpath.backend.service.UsuarioMateriaService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -24,9 +25,14 @@ public class UsuarioMateriaController {
     @Autowired
     private UsuarioMateriaService usuarioMateriaService;
 
+    @Autowired
+    private SecurityUtils securityUtils;
+
     @PostMapping
     @Operation(summary = "Inscribir usuario en materia")
     public ResponseEntity<ApiResponse<UsuarioMateriaResponse>> inscribir(@Valid @RequestBody UsuarioMateriaRequest request) {
+        // Solo puede inscribirse a sí mismo (o admin a cualquiera)
+        securityUtils.validarPropietario(request.getUsuarioId());
         UsuarioMateriaResponse usuarioMateria = usuarioMateriaService.inscribir(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.<UsuarioMateriaResponse>builder()
@@ -40,6 +46,7 @@ public class UsuarioMateriaController {
     @Operation(summary = "Obtener usuario-materia por ID")
     public ResponseEntity<ApiResponse<UsuarioMateriaResponse>> obtenerPorId(@PathVariable Long id) {
         UsuarioMateriaResponse usuarioMateria = usuarioMateriaService.obtenerPorId(id);
+        securityUtils.validarPropietario(usuarioMateria.getUsuarioId());
         return ResponseEntity.ok(ApiResponse.<UsuarioMateriaResponse>builder()
                 .success(true)
                 .message("Usuario-Materia obtenida exitosamente")
@@ -50,6 +57,7 @@ public class UsuarioMateriaController {
     @GetMapping("/usuario/{usuarioId}")
     @Operation(summary = "Obtener materias de un usuario")
     public ResponseEntity<ApiResponse<List<UsuarioMateriaResponse>>> obtenerPorUsuario(@PathVariable Long usuarioId) {
+        securityUtils.validarPropietario(usuarioId);
         List<UsuarioMateriaResponse> usuarioMaterias = usuarioMateriaService.obtenerPorUsuario(usuarioId);
         return ResponseEntity.ok(ApiResponse.<List<UsuarioMateriaResponse>>builder()
                 .success(true)
@@ -63,6 +71,8 @@ public class UsuarioMateriaController {
     public ResponseEntity<ApiResponse<UsuarioMateriaResponse>> actualizar(
             @PathVariable Long id,
             @Valid @RequestBody UsuarioMateriaRequest request) {
+        UsuarioMateriaResponse existing = usuarioMateriaService.obtenerPorId(id);
+        securityUtils.validarPropietario(existing.getUsuarioId());
         UsuarioMateriaResponse usuarioMateria = usuarioMateriaService.actualizar(id, request);
         return ResponseEntity.ok(ApiResponse.<UsuarioMateriaResponse>builder()
                 .success(true)
@@ -73,12 +83,10 @@ public class UsuarioMateriaController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Eliminar usuario-materia")
-    public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable Long id) {
+    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+        UsuarioMateriaResponse existing = usuarioMateriaService.obtenerPorId(id);
+        securityUtils.validarPropietario(existing.getUsuarioId());
         usuarioMateriaService.eliminar(id);
-        return ResponseEntity.ok(ApiResponse.<Void>builder()
-                .success(true)
-                .message("Usuario-Materia eliminada exitosamente")
-                .build());
+        return ResponseEntity.noContent().build();
     }
 }
-

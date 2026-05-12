@@ -2,6 +2,7 @@ package com.academicpath.backend.controller;
 
 import com.academicpath.backend.dto.response.ApiResponse;
 import com.academicpath.backend.dto.response.ProgresoAcademicoResponse;
+import com.academicpath.backend.security.SecurityUtils;
 import com.academicpath.backend.service.ProgresoAcademicoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -19,9 +20,13 @@ public class ProgresoAcademicoController {
     @Autowired
     private ProgresoAcademicoService progresoAcademicoService;
 
+    @Autowired
+    private SecurityUtils securityUtils;
+
     @GetMapping("/{usuarioId}")
     @Operation(summary = "Obtener progreso académico del usuario")
     public ResponseEntity<ApiResponse<ProgresoAcademicoResponse>> obtenerProgreso(@PathVariable Long usuarioId) {
+        securityUtils.validarPropietario(usuarioId);
         ProgresoAcademicoResponse progreso = progresoAcademicoService.obtenerProgresoUsuario(usuarioId);
         return ResponseEntity.ok(ApiResponse.<ProgresoAcademicoResponse>builder()
                 .success(true)
@@ -33,6 +38,7 @@ public class ProgresoAcademicoController {
     @PostMapping("/{usuarioId}/recalcular")
     @Operation(summary = "Recalcular progreso académico del usuario")
     public ResponseEntity<ApiResponse<Void>> recalcularProgreso(@PathVariable Long usuarioId) {
+        securityUtils.validarPropietario(usuarioId);
         progresoAcademicoService.recalcularProgreso(usuarioId);
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .success(true)
@@ -40,4 +46,3 @@ public class ProgresoAcademicoController {
                 .build());
     }
 }
-

@@ -3,6 +3,10 @@ package com.academicpath.backend.controller;
 import com.academicpath.backend.dto.request.ActividadRequest;
 import com.academicpath.backend.dto.response.ActividadResponse;
 import com.academicpath.backend.dto.response.ApiResponse;
+import com.academicpath.backend.entity.UsuarioMateria;
+import com.academicpath.backend.exception.ResourceNotFoundException;
+import com.academicpath.backend.repository.UsuarioMateriaRepository;
+import com.academicpath.backend.security.SecurityUtils;
 import com.academicpath.backend.service.ActividadService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -24,9 +28,25 @@ public class ActividadController {
     @Autowired
     private ActividadService actividadService;
 
+    @Autowired
+    private SecurityUtils securityUtils;
+
+    @Autowired
+    private UsuarioMateriaRepository usuarioMateriaRepository;
+
+    /**
+     * Resuelve el usuarioId dueño de una UsuarioMateria y valida ownership.
+     */
+    private void validarOwnershipPorUsuarioMateria(Long usuarioMateriaId) {
+        UsuarioMateria um = usuarioMateriaRepository.findById(usuarioMateriaId)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario-Materia no encontrada con id: " + usuarioMateriaId));
+        securityUtils.validarPropietario(um.getUsuario().getId());
+    }
+
     @PostMapping
     @Operation(summary = "Crear nueva actividad")
     public ResponseEntity<ApiResponse<ActividadResponse>> crear(@Valid @RequestBody ActividadRequest request) {
+        validarOwnershipPorUsuarioMateria(request.getUsuarioMateriaId());
         ActividadResponse actividad = actividadService.crear(request);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.<ActividadResponse>builder()
@@ -40,6 +60,7 @@ public class ActividadController {
     @Operation(summary = "Obtener actividad por ID")
     public ResponseEntity<ApiResponse<ActividadResponse>> obtenerPorId(@PathVariable Long id) {
         ActividadResponse actividad = actividadService.obtenerPorId(id);
+        validarOwnershipPorUsuarioMateria(actividad.getUsuarioMateriaId());
         return ResponseEntity.ok(ApiResponse.<ActividadResponse>builder()
                 .success(true)
                 .message("Actividad obtenida exitosamente")
@@ -51,6 +72,7 @@ public class ActividadController {
     @Operation(summary = "Obtener actividades por usuario-materia")
     public ResponseEntity<ApiResponse<List<ActividadResponse>>> obtenerPorUsuarioMateria(
             @PathVariable Long usuarioMateriaId) {
+        validarOwnershipPorUsuarioMateria(usuarioMateriaId);
         List<ActividadResponse> actividades = actividadService.obtenerPorUsuarioMateria(usuarioMateriaId);
         return ResponseEntity.ok(ApiResponse.<List<ActividadResponse>>builder()
                 .success(true)
@@ -64,6 +86,8 @@ public class ActividadController {
     public ResponseEntity<ApiResponse<ActividadResponse>> actualizar(
             @PathVariable Long id,
             @Valid @RequestBody ActividadRequest request) {
+        ActividadResponse existing = actividadService.obtenerPorId(id);
+        validarOwnershipPorUsuarioMateria(existing.getUsuarioMateriaId());
         ActividadResponse actividad = actividadService.actualizar(id, request);
         return ResponseEntity.ok(ApiResponse.<ActividadResponse>builder()
                 .success(true)
@@ -74,12 +98,10 @@ public class ActividadController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Eliminar actividad")
-    public ResponseEntity<ApiResponse<Void>> eliminar(@PathVariable Long id) {
+    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
+        ActividadResponse existing = actividadService.obtenerPorId(id);
+        validarOwnershipPorUsuarioMateria(existing.getUsuarioMateriaId());
         actividadService.eliminar(id);
-        return ResponseEntity.ok(ApiResponse.<Void>builder()
-                .success(true)
-                .message("Actividad eliminada exitosamente")
-                .build());
+        return ResponseEntity.noContent().build();
     }
 }
-
