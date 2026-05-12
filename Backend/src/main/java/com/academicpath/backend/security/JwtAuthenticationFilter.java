@@ -21,7 +21,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private JwtUtil jwtUtil;
 
     @Autowired
-    private UsuariosUserDetailsService usuariosUserDetailsService;
+    private UsuarioUserDetailsService usuarioUserDetailsService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
@@ -33,7 +33,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String correo = jwtUtil.extractUsername(jwt);
 
                 if (correo != null) {
-                    UserDetails userDetails = usuariosUserDetailsService.loadUserByUsername(correo);
+                    UserDetails userDetails = usuarioUserDetailsService.loadUserByUsername(correo);
 
                     if (jwtUtil.isTokenValid(jwt, userDetails)) {
                         UsernamePasswordAuthenticationToken authentication =
@@ -58,4 +58,3 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         return null;
     }
 }
-

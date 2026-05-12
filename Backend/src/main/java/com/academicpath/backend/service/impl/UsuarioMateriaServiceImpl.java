@@ -2,16 +2,17 @@ package com.academicpath.backend.service.impl;
 
 import com.academicpath.backend.dto.request.UsuarioMateriaRequest;
 import com.academicpath.backend.dto.response.UsuarioMateriaResponse;
+import com.academicpath.backend.entity.Materia;
+import com.academicpath.backend.entity.Profesor;
+import com.academicpath.backend.entity.Usuario;
+import com.academicpath.backend.entity.UsuarioMateria;
 import com.academicpath.backend.exception.ResourceNotFoundException;
 import com.academicpath.backend.exception.UsuarioException;
-import com.academicpath.backend.models.entity.Materias;
-import com.academicpath.backend.models.entity.Profesores;
-import com.academicpath.backend.models.entity.Usuarios;
-import com.academicpath.backend.models.entity.UsuarioMaterias;
-import com.academicpath.backend.repository.MateriasRepository;
-import com.academicpath.backend.repository.ProfesoresRepository;
-import com.academicpath.backend.repository.UsuariosRepository;
-import com.academicpath.backend.repository.UsuarioMateriasRepository;
+import com.academicpath.backend.mapper.UsuarioMateriaMapper;
+import com.academicpath.backend.repository.MateriaRepository;
+import com.academicpath.backend.repository.ProfesorRepository;
+import com.academicpath.backend.repository.UsuarioMateriaRepository;
+import com.academicpath.backend.repository.UsuarioRepository;
 import com.academicpath.backend.service.PrerrequisitoService;
 import com.academicpath.backend.service.UsuarioMateriaService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,57 +20,54 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class UsuarioMateriaServiceImpl implements UsuarioMateriaService {
 
     @Autowired
-    private UsuarioMateriasRepository usuarioMateriasRepository;
+    private UsuarioMateriaRepository usuarioMateriaRepository;
 
     @Autowired
-    private UsuariosRepository usuariosRepository;
+    private UsuarioRepository usuarioRepository;
 
     @Autowired
-    private MateriasRepository materiasRepository;
+    private MateriaRepository materiaRepository;
 
     @Autowired
-    private ProfesoresRepository profesoresRepository;
+    private ProfesorRepository profesorRepository;
 
     @Autowired
     private PrerrequisitoService prerrequisitosService;
 
+    @Autowired
+    private UsuarioMateriaMapper usuarioMateriaMapper;
+
     @Override
     @Transactional
     public UsuarioMateriaResponse inscribir(UsuarioMateriaRequest request) {
-        Usuarios usuario = usuariosRepository.findById(request.getUsuarioId())
+        Usuario usuario = usuarioRepository.findById(request.getUsuarioId())
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con id: " + request.getUsuarioId()));
 
-        Materias materia = materiasRepository.findById(request.getMateriaId())
+        Materia materia = materiaRepository.findById(request.getMateriaId())
                 .orElseThrow(() -> new ResourceNotFoundException("Materia no encontrada con id: " + request.getMateriaId()));
 
-        // Profesor es opcional
-        Profesores profesor = null;
-        if (request.getProfesorId() != null) {
-            profesor = profesoresRepository.findById(request.getProfesorId())
-                    .orElse(null);
-        }
-
-        // Verificar si ya está inscrito
-        if (usuarioMateriasRepository.findByUsuarioIdAndMateriaId(request.getUsuarioId(), request.getMateriaId()).isPresent()) {
+        if (usuarioMateriaRepository.findByUsuarioIdAndMateriaId(request.getUsuarioId(), request.getMateriaId()).isPresent()) {
             throw new UsuarioException("El usuario ya está inscrito en esta materia");
         }
 
-        // Verificar prerrequisitos (solo si existen prerrequisitos definidos)
         if (!prerrequisitosService.verificarPrerrequisitosCompletos(request.getUsuarioId(), request.getMateriaId())) {
             throw new UsuarioException("El usuario no cumple con los prerrequisitos de esta materia");
         }
 
-        String estado = (request.getEstado() != null && !request.getEstado().isBlank())
-                ? request.getEstado()
-                : "CURSANDO";
+        Profesor profesor = null;
+        if (request.getProfesorId() != null) {
+            profesor = profesorRepository.findById(request.getProfesorId()).orElse(null);
+        }
 
-        UsuarioMaterias usuarioMateria = UsuarioMaterias.builder()
+        String estado = (request.getEstado() != null && !request.getEstado().isBlank())
+                ? request.getEstado() : "CURSANDO";
+
+        UsuarioMateria usuarioMateria = UsuarioMateria.builder()
                 .usuario(usuario)
                 .materia(materia)
                 .profesor(profesor)
@@ -79,86 +77,48 @@ public class UsuarioMateriaServiceImpl implements UsuarioMateriaService {
                 .notaFinal(request.getNotaFinal() != null ? request.getNotaFinal() : 0.0)
                 .build();
 
-        UsuarioMaterias guardada = usuarioMateriasRepository.save(usuarioMateria);
-        return mapToResponse(guardada);
+        return usuarioMateriaMapper.toResponse(usuarioMateriaRepository.save(usuarioMateria));
     }
 
     @Override
     @Transactional(readOnly = true)
     public UsuarioMateriaResponse obtenerPorId(Long id) {
-        UsuarioMaterias usuarioMateria = usuarioMateriasRepository.findById(id)
+        return usuarioMateriaRepository.findById(id)
+                .map(usuarioMateriaMapper::toResponse)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario-Materia no encontrada con id: " + id));
-        return mapToResponse(usuarioMateria);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<UsuarioMateriaResponse> obtenerPorUsuario(Long usuarioId) {
-        return usuarioMateriasRepository.findByUsuarioId(usuarioId)
+        return usuarioMateriaRepository.findByUsuarioId(usuarioId)
                 .stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+                .map(usuarioMateriaMapper::toResponse)
+                .toList();
     }
 
     @Override
     @Transactional
     public UsuarioMateriaResponse actualizar(Long id, UsuarioMateriaRequest request) {
-        UsuarioMaterias usuarioMateria = usuarioMateriasRepository.findById(id)
+        UsuarioMateria usuarioMateria = usuarioMateriaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario-Materia no encontrada con id: " + id));
 
-        // Profesor opcional en actualización
         if (request.getProfesorId() != null) {
-            Profesores profesor = profesoresRepository.findById(request.getProfesorId()).orElse(null);
-            usuarioMateria.setProfesor(profesor);
+            usuarioMateria.setProfesor(profesorRepository.findById(request.getProfesorId()).orElse(null));
         }
+        if (request.getSemestre() != null) usuarioMateria.setSemestre(request.getSemestre());
+        if (request.getAnio() != null) usuarioMateria.setAnio(request.getAnio());
+        if (request.getEstado() != null) usuarioMateria.setEstado(request.getEstado());
+        if (request.getNotaFinal() != null) usuarioMateria.setNotaFinal(request.getNotaFinal());
 
-        if (request.getSemestre() != null) {
-            usuarioMateria.setSemestre(request.getSemestre());
-        }
-        if (request.getAnio() != null) {
-            usuarioMateria.setAnio(request.getAnio());
-        }
-        if (request.getEstado() != null) {
-            usuarioMateria.setEstado(request.getEstado());
-        }
-        if (request.getNotaFinal() != null) {
-            usuarioMateria.setNotaFinal(request.getNotaFinal());
-        }
-
-        UsuarioMaterias actualizada = usuarioMateriasRepository.save(usuarioMateria);
-        return mapToResponse(actualizada);
+        return usuarioMateriaMapper.toResponse(usuarioMateriaRepository.save(usuarioMateria));
     }
 
     @Override
     @Transactional
     public void eliminar(Long id) {
-        UsuarioMaterias usuarioMateria = usuarioMateriasRepository.findById(id)
+        UsuarioMateria usuarioMateria = usuarioMateriaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario-Materia no encontrada con id: " + id));
-        usuarioMateriasRepository.delete(usuarioMateria);
-    }
-
-    private UsuarioMateriaResponse mapToResponse(UsuarioMaterias um) {
-        UsuarioMateriaResponse.MateriaInfo materiaInfo = UsuarioMateriaResponse.MateriaInfo.builder()
-                .id(um.getMateria().getId())
-                .codigo(um.getMateria().getCodigo())
-                .nombre(um.getMateria().getNombre())
-                .creditos(um.getMateria().getCreditos())
-                .descripcion(um.getMateria().getDescripcion())
-                .build();
-
-        return UsuarioMateriaResponse.builder()
-                .id(um.getId())
-                .usuarioId(um.getUsuario().getId())
-                .materiaId(um.getMateria().getId())
-                .materia(materiaInfo)
-                .materiaNombre(um.getMateria().getNombre())
-                .profesorId(um.getProfesor() != null ? um.getProfesor().getId() : null)
-                .profesorNombre(um.getProfesor() != null ? um.getProfesor().getNombre() : null)
-                .semestre(um.getSemestre())
-                .anio(um.getAnio())
-                .estado(um.getEstado())
-                .notaFinal(um.getNotaFinal())
-                .fechaCreacion(um.getFechaCreacion())
-                .build();
+        usuarioMateriaRepository.delete(usuarioMateria);
     }
 }

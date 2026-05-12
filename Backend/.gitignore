@@ -35,3 +35,6 @@ Thumbs.db
 .env
 .env.local
 
+# Legacy/deprecated (fuera del source, no subir a git)
+_deprecated/
+cleanup.ps1

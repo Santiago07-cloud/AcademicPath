@@ -12,4 +12,3 @@ public interface CalificacionService {
     CalificacionResponse actualizar(Long id, CalificacionRequest request);
     void eliminar(Long id);
 }
-

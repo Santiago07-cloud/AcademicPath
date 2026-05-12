@@ -15,75 +15,42 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(ResourceNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleResourceNotFoundException(
-            ResourceNotFoundException ex, WebRequest request) {
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .status(HttpStatus.NOT_FOUND.value())
-                .message(ex.getMessage())
-                .error("Resource Not Found")
-                .timestamp(System.currentTimeMillis())
-                .build();
-        return new ResponseEntity<>(errorResponse, HttpStatus.NOT_FOUND);
+    public ResponseEntity<ErrorResponse> handleResourceNotFoundException(ResourceNotFoundException ex, WebRequest request) {
+        return buildError(HttpStatus.NOT_FOUND, ex.getMessage(), "Resource Not Found");
     }
 
     @ExceptionHandler(UsuarioException.class)
-    public ResponseEntity<ErrorResponse> handleUsuarioException(
-            UsuarioException ex, WebRequest request) {
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .status(HttpStatus.BAD_REQUEST.value())
-                .message(ex.getMessage())
-                .error("Usuario Error")
-                .timestamp(System.currentTimeMillis())
-                .build();
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    public ResponseEntity<ErrorResponse> handleUsuarioException(UsuarioException ex, WebRequest request) {
+        return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), "Usuario Error");
     }
 
     @ExceptionHandler(MateriaException.class)
-    public ResponseEntity<ErrorResponse> handleMateriaException(
-            MateriaException ex, WebRequest request) {
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .status(HttpStatus.BAD_REQUEST.value())
-                .message(ex.getMessage())
-                .error("Materia Error")
-                .timestamp(System.currentTimeMillis())
-                .build();
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    public ResponseEntity<ErrorResponse> handleMateriaException(MateriaException ex, WebRequest request) {
+        return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), "Materia Error");
     }
 
     @ExceptionHandler(ActividadException.class)
-    public ResponseEntity<ErrorResponse> handleActividadException(
-            ActividadException ex, WebRequest request) {
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .status(HttpStatus.BAD_REQUEST.value())
-                .message(ex.getMessage())
-                .error("Actividad Error")
-                .timestamp(System.currentTimeMillis())
-                .build();
-        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    public ResponseEntity<ErrorResponse> handleActividadException(ActividadException ex, WebRequest request) {
+        return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), "Actividad Error");
+    }
+
+    @ExceptionHandler(CalificacionException.class)
+    public ResponseEntity<ErrorResponse> handleCalificacionException(CalificacionException ex, WebRequest request) {
+        return buildError(HttpStatus.BAD_REQUEST, ex.getMessage(), "Calificacion Error");
     }
 
     @ExceptionHandler(UsernameNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleUsernameNotFoundException(
-            UsernameNotFoundException ex, WebRequest request) {
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .status(HttpStatus.UNAUTHORIZED.value())
-                .message("Credenciales inválidas")
-                .error("Authentication Failed")
-                .timestamp(System.currentTimeMillis())
-                .build();
-        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
+    public ResponseEntity<ErrorResponse> handleUsernameNotFoundException(UsernameNotFoundException ex, WebRequest request) {
+        return buildError(HttpStatus.UNAUTHORIZED, "Credenciales inválidas", "Authentication Failed");
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, Object>> handleValidationException(
-            MethodArgumentNotValidException ex, WebRequest request) {
-        Map<String, Object> response = new HashMap<>();
+    public ResponseEntity<Map<String, Object>> handleValidationException(MethodArgumentNotValidException ex, WebRequest request) {
         Map<String, String> errors = new HashMap<>();
-
         ex.getBindingResult().getFieldErrors().forEach(error ->
-                errors.put(error.getField(), error.getDefaultMessage())
-        );
+                errors.put(error.getField(), error.getDefaultMessage()));
 
+        Map<String, Object> response = new HashMap<>();
         response.put("status", HttpStatus.BAD_REQUEST.value());
         response.put("message", "Validación fallida");
         response.put("errors", errors);
@@ -93,15 +60,19 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGlobalException(
-            Exception ex, WebRequest request) {
-        ErrorResponse errorResponse = ErrorResponse.builder()
-                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                .message("Ocurrió un error interno en el servidor")
-                .error(ex.getMessage())
-                .timestamp(System.currentTimeMillis())
-                .build();
-        return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+    public ResponseEntity<ErrorResponse> handleGlobalException(Exception ex, WebRequest request) {
+        return buildError(HttpStatus.INTERNAL_SERVER_ERROR, "Ocurrió un error interno en el servidor", ex.getMessage());
+    }
+
+    private ResponseEntity<ErrorResponse> buildError(HttpStatus status, String message, String error) {
+        return new ResponseEntity<>(
+                ErrorResponse.builder()
+                        .status(status.value())
+                        .message(message)
+                        .error(error)
+                        .timestamp(System.currentTimeMillis())
+                        .build(),
+                status
+        );
     }
 }
-

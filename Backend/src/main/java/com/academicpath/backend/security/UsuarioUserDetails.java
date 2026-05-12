@@ -1,6 +1,6 @@
 package com.academicpath.backend.security;
 
-import com.academicpath.backend.models.entity.Usuarios;
+import com.academicpath.backend.entity.Usuario;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -9,9 +9,9 @@ import java.util.HashSet;
 
 public class UsuarioUserDetails implements UserDetails {
 
-    private final Usuarios usuario;
+    private final Usuario usuario;
 
-    public UsuarioUserDetails(Usuarios usuario) {
+    public UsuarioUserDetails(Usuario usuario) {
         this.usuario = usuario;
     }
 
@@ -31,31 +31,22 @@ public class UsuarioUserDetails implements UserDetails {
     }
 
     @Override
-    public boolean isAccountNonExpired() {
-        return true;
-    }
+    public boolean isAccountNonExpired() { return true; }
 
     @Override
-    public boolean isAccountNonLocked() {
-        return true;
-    }
+    public boolean isAccountNonLocked() { return true; }
 
     @Override
-    public boolean isCredentialsNonExpired() {
-        return true;
-    }
+    public boolean isCredentialsNonExpired() { return true; }
 
     @Override
-    public boolean isEnabled() {
-        return true;
-    }
+    public boolean isEnabled() { return true; }
 
     public Long getId() {
         return usuario.getId();
     }
 
-    public Usuarios getUsuario() {
+    public Usuario getUsuario() {
         return usuario;
     }
 }
-

@@ -12,4 +12,3 @@ public interface MateriaService {
     MateriaResponse actualizar(Long id, MateriaRequest request);
     void eliminar(Long id);
 }
-

@@ -2,69 +2,68 @@ package com.academicpath.backend.service.impl;
 
 import com.academicpath.backend.dto.request.MateriaRequest;
 import com.academicpath.backend.dto.response.MateriaResponse;
+import com.academicpath.backend.entity.Materia;
 import com.academicpath.backend.exception.MateriaException;
 import com.academicpath.backend.exception.ResourceNotFoundException;
-import com.academicpath.backend.mapper.MateriasMapper;
-import com.academicpath.backend.models.entity.Materias;
-import com.academicpath.backend.repository.MateriasRepository;
+import com.academicpath.backend.mapper.MateriaMapper;
+import com.academicpath.backend.repository.MateriaRepository;
 import com.academicpath.backend.service.MateriaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class MateriaServiceImpl implements MateriaService {
 
     @Autowired
-    private MateriasRepository materiasRepository;
+    private MateriaRepository materiaRepository;
 
     @Autowired
-    private MateriasMapper materiasMapper;
+    private MateriaMapper materiaMapper;
 
     @Override
     @Transactional
     public MateriaResponse crear(MateriaRequest request) {
-        if (materiasRepository.existsByCodigo(request.getCodigo())) {
+        if (materiaRepository.existsByCodigo(request.getCodigo())) {
             throw new MateriaException("El código de materia ya existe: " + request.getCodigo());
         }
 
-        Materias materia = Materias.builder()
+        Materia materia = Materia.builder()
                 .codigo(request.getCodigo())
                 .nombre(request.getNombre())
                 .creditos(request.getCreditos())
                 .descripcion(request.getDescripcion())
                 .build();
 
-        Materias materiaGuardada = materiasRepository.save(materia);
-        return materiasMapper.toResponse(materiaGuardada);
+        return materiaMapper.toResponse(materiaRepository.save(materia));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public MateriaResponse obtenerPorId(Long id) {
-        Materias materia = materiasRepository.findById(id)
+        return materiaRepository.findById(id)
+                .map(materiaMapper::toResponse)
                 .orElseThrow(() -> new ResourceNotFoundException("Materia no encontrada con id: " + id));
-        return materiasMapper.toResponse(materia);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<MateriaResponse> obtenerTodas() {
-        return materiasRepository.findAll()
+        return materiaRepository.findAll()
                 .stream()
-                .map(materiasMapper::toResponse)
-                .collect(Collectors.toList());
+                .map(materiaMapper::toResponse)
+                .toList();
     }
 
     @Override
     @Transactional
     public MateriaResponse actualizar(Long id, MateriaRequest request) {
-        Materias materia = materiasRepository.findById(id)
+        Materia materia = materiaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Materia no encontrada con id: " + id));
 
-        if (!materia.getCodigo().equals(request.getCodigo()) && 
-            materiasRepository.existsByCodigo(request.getCodigo())) {
+        if (!materia.getCodigo().equals(request.getCodigo()) && materiaRepository.existsByCodigo(request.getCodigo())) {
             throw new MateriaException("El código de materia ya existe: " + request.getCodigo());
         }
 
@@ -73,16 +72,14 @@ public class MateriaServiceImpl implements MateriaService {
         materia.setCreditos(request.getCreditos());
         materia.setDescripcion(request.getDescripcion());
 
-        Materias materiaActualizada = materiasRepository.save(materia);
-        return materiasMapper.toResponse(materiaActualizada);
+        return materiaMapper.toResponse(materiaRepository.save(materia));
     }
 
     @Override
     @Transactional
     public void eliminar(Long id) {
-        Materias materia = materiasRepository.findById(id)
+        Materia materia = materiaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Materia no encontrada con id: " + id));
-        materiasRepository.delete(materia);
+        materiaRepository.delete(materia);
     }
 }
-

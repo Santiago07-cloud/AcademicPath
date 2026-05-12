@@ -8,4 +8,3 @@ public interface PrerrequisitoService {
     Set<Long> calcularMateriasDisponibles(Long usuarioId);
     boolean verificarPrerrequisitosCompletos(Long usuarioId, Long materiaId);
 }
-

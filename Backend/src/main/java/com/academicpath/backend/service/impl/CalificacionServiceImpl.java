@@ -2,92 +2,91 @@ package com.academicpath.backend.service.impl;
 
 import com.academicpath.backend.dto.request.CalificacionRequest;
 import com.academicpath.backend.dto.response.CalificacionResponse;
+import com.academicpath.backend.entity.Actividad;
+import com.academicpath.backend.entity.Calificacion;
+import com.academicpath.backend.exception.CalificacionException;
 import com.academicpath.backend.exception.ResourceNotFoundException;
-import com.academicpath.backend.mapper.CalificacionesMapper;
-import com.academicpath.backend.models.entity.Actividades;
-import com.academicpath.backend.models.entity.Calificaciones;
-import com.academicpath.backend.repository.ActividadesRepository;
-import com.academicpath.backend.repository.CalificacionesRepository;
+import com.academicpath.backend.mapper.CalificacionMapper;
+import com.academicpath.backend.repository.ActividadRepository;
+import com.academicpath.backend.repository.CalificacionRepository;
 import com.academicpath.backend.service.CalificacionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class CalificacionServiceImpl implements CalificacionService {
 
     @Autowired
-    private CalificacionesRepository calificacionesRepository;
+    private CalificacionRepository calificacionRepository;
 
     @Autowired
-    private ActividadesRepository actividadesRepository;
+    private ActividadRepository actividadRepository;
 
     @Autowired
-    private CalificacionesMapper calificacionesMapper;
+    private CalificacionMapper calificacionMapper;
 
     @Override
     @Transactional
     public CalificacionResponse crear(CalificacionRequest request) {
-        Actividades actividad = actividadesRepository.findById(request.getActividadId())
+        Actividad actividad = actividadRepository.findById(request.getActividadId())
                 .orElseThrow(() -> new ResourceNotFoundException("Actividad no encontrada con id: " + request.getActividadId()));
 
-        if (request.getNota() < 0 || request.getNota() > actividad.getNotaMaxima()) {
-            throw new IllegalArgumentException("La nota debe estar entre 0 y " + actividad.getNotaMaxima());
-        }
+        validarNota(request.getNota(), actividad.getNotaMaxima());
 
-        Calificaciones calificacion = Calificaciones.builder()
+        Calificacion calificacion = Calificacion.builder()
                 .actividad(actividad)
                 .nota(request.getNota())
                 .retroalimentacion(request.getRetroalimentacion())
                 .build();
 
-        Calificaciones calificacionGuardada = calificacionesRepository.save(calificacion);
-        return calificacionesMapper.toResponse(calificacionGuardada);
+        return calificacionMapper.toResponse(calificacionRepository.save(calificacion));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public CalificacionResponse obtenerPorId(Long id) {
-        Calificaciones calificacion = calificacionesRepository.findById(id)
+        return calificacionRepository.findById(id)
+                .map(calificacionMapper::toResponse)
                 .orElseThrow(() -> new ResourceNotFoundException("Calificación no encontrada con id: " + id));
-        return calificacionesMapper.toResponse(calificacion);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<CalificacionResponse> obtenerPorActividad(Long actividadId) {
-        return calificacionesRepository.findByActividadId(actividadId)
+        return calificacionRepository.findByActividadId(actividadId)
                 .stream()
-                .map(calificacionesMapper::toResponse)
-                .collect(Collectors.toList());
+                .map(calificacionMapper::toResponse)
+                .toList();
     }
 
     @Override
     @Transactional
     public CalificacionResponse actualizar(Long id, CalificacionRequest request) {
-        Calificaciones calificacion = calificacionesRepository.findById(id)
+        Calificacion calificacion = calificacionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Calificación no encontrada con id: " + id));
 
-        Actividades actividad = calificacion.getActividad();
-
-        if (request.getNota() < 0 || request.getNota() > actividad.getNotaMaxima()) {
-            throw new IllegalArgumentException("La nota debe estar entre 0 y " + actividad.getNotaMaxima());
-        }
+        validarNota(request.getNota(), calificacion.getActividad().getNotaMaxima());
 
         calificacion.setNota(request.getNota());
         calificacion.setRetroalimentacion(request.getRetroalimentacion());
 
-        Calificaciones calificacionActualizada = calificacionesRepository.save(calificacion);
-        return calificacionesMapper.toResponse(calificacionActualizada);
+        return calificacionMapper.toResponse(calificacionRepository.save(calificacion));
     }
 
     @Override
     @Transactional
     public void eliminar(Long id) {
-        Calificaciones calificacion = calificacionesRepository.findById(id)
+        Calificacion calificacion = calificacionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Calificación no encontrada con id: " + id));
-        calificacionesRepository.delete(calificacion);
+        calificacionRepository.delete(calificacion);
+    }
+
+    private void validarNota(Double nota, Double notaMaxima) {
+        if (nota < 0 || nota > notaMaxima) {
+            throw new CalificacionException("La nota debe estar entre 0 y " + notaMaxima);
+        }
     }
 }
-
