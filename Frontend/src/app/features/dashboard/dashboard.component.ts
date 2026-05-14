@@ -1,5 +1,4 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { AgendaService } from '../../core/services/agenda.service';
@@ -13,8 +12,10 @@ import { NavbarComponent } from '../../shared/components/navbar/navbar.component
 import { AgendaComponent } from './agenda/agenda.component';
 import { MisMateriasComponent } from './mis-materias/mis-materias.component';
 import { ProgresoComponent } from './progreso/progreso.component';
+import { AdminComponent } from './admin/admin.component';
+import { PerfilComponent } from './perfil/perfil.component';
 
-type SectionId = 'resumen' | 'agenda' | 'materias' | 'progreso';
+type SectionId = 'resumen' | 'agenda' | 'materias' | 'progreso' | 'perfil' | 'admin';
 
 interface MenuItem {
   id: SectionId;
@@ -32,7 +33,15 @@ interface SummaryCard {
 
 @Component({
   selector: 'app-dashboard',
-  imports: [RouterLink, NavbarComponent, AgendaComponent, MisMateriasComponent, ProgresoComponent],
+  imports: [
+    RouterLink,
+    NavbarComponent,
+    AgendaComponent,
+    MisMateriasComponent,
+    ProgresoComponent,
+    PerfilComponent,
+    AdminComponent,
+  ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -47,9 +56,7 @@ export class DashboardComponent implements OnInit {
     month: 'short',
   });
 
-  readonly currentUser = toSignal(this.authService.currentUser$, {
-    initialValue: this.authService.currentUser,
-  });
+  readonly currentUser = signal<Usuario | null>(this.authService.currentUser);
 
   readonly menuAbierto = signal(false);
   readonly seccionActiva = signal<SectionId>('resumen');
@@ -60,27 +67,39 @@ export class DashboardComponent implements OnInit {
     year: 'numeric',
   }).format(new Date());
 
-  readonly menuItems: readonly MenuItem[] = [
-    { id: 'resumen', label: 'Resumen', icon: 'bi bi-grid' },
-    { id: 'agenda', label: 'Agenda', icon: 'bi bi-calendar2-week' },
-    { id: 'materias', label: 'Materias', icon: 'bi bi-book' },
-    { id: 'progreso', label: 'Progreso', icon: 'bi bi-graph-up-arrow' },
-  ];
+  readonly isAdmin = computed(() => (this.currentUser()?.rol ?? '').toUpperCase() === 'ADMIN');
+
+  readonly menuItems = computed<readonly MenuItem[]>(() => {
+    const base: MenuItem[] = [
+      { id: 'resumen', label: 'Resumen', icon: 'bi bi-grid' },
+      { id: 'agenda', label: 'Agenda', icon: 'bi bi-calendar2-week' },
+      { id: 'materias', label: 'Materias', icon: 'bi bi-book' },
+      { id: 'progreso', label: 'Progreso', icon: 'bi bi-graph-up-arrow' },
+      { id: 'perfil', label: 'Mi perfil', icon: 'bi bi-person-circle' },
+    ];
+
+    if (this.isAdmin()) {
+      base.push({ id: 'admin', label: 'Admin', icon: 'bi bi-shield-lock' });
+    }
+
+    return base;
+  });
 
   readonly progreso      = signal<ProgresoAcademico | null>(null);
   readonly inscripciones = signal<UsuarioMateria[]>([]);
 
   ngOnInit(): void {
+    // Mantener el signal de usuario sincronizado con el observable
+    this.authService.currentUser$.subscribe(u => this.currentUser.set(u));
+
     const user = this.authService.currentUser;
     if (!user) return;
-    // Cargar progreso
     this.progresoService.obtenerProgreso(user.id).subscribe({
-      next: (p) => this.progreso.set(p),
+      next: (p: ProgresoAcademico) => this.progreso.set(p),
       error: () => this.progreso.set(null),
     });
-    // Cargar inscripciones para stats del resumen
     this.materiaService.obtenerMisMateriasInscritas(user.id).subscribe({
-      next: (list) => this.inscripciones.set(Array.isArray(list) ? list : []),
+      next: (list: UsuarioMateria[]) => this.inscripciones.set(Array.isArray(list) ? list : []),
       error: () => {},
     });
   }
@@ -191,9 +210,17 @@ export class DashboardComponent implements OnInit {
       agenda: 'Agenda estudiantil',
       materias: 'Materias',
       progreso: 'Progreso académico',
+      perfil: 'Mi perfil',
+      admin: 'Panel de administración',
     };
 
     return titles[this.seccionActiva()];
+  });
+
+  private readonly ensureSectionAllowed = effect(() => {
+    if (this.seccionActiva() === 'admin' && !this.isAdmin()) {
+      this.seccionActiva.set('resumen');
+    }
   });
 
   readonly usuarioIniciales = computed(() => this.initials(this.currentUser()));

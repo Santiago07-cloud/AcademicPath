@@ -1,0 +1,97 @@
+<section class="perfil-shell surface-card panel-card">
+
+  <div class="section-header section-header--compact">
+    <div>
+      <p class="section-kicker">Cuenta</p>
+      <h2 class="section-heading">Mi perfil</h2>
+      <p class="section-copy">Actualiza tu nombre, universidad y carrera.</p>
+    </div>
+  </div>
+
+  @if (usuario) {
+    <div class="perfil-info">
+      <div class="perfil-avatar">{{ usuario.nombres[0] }}{{ usuario.apellidos[0] }}</div>
+      <div>
+        <strong>{{ usuario.nombres }} {{ usuario.apellidos }}</strong>
+        <span>{{ usuario.correo }}</span>
+        @if (usuario.rol) {
+          <span class="chip chip-info" style="margin-top:.35rem;display:inline-flex">{{ usuario.rol }}</span>
+        }
+      </div>
+    </div>
+  }
+
+  @if (exito()) {
+    <div class="feedback-banner feedback-banner--success">
+      <i class="bi bi-check-circle-fill"></i>
+      <div><strong>Guardado</strong><p>{{ exito() }}</p></div>
+    </div>
+  }
+
+  @if (error()) {
+    <div class="feedback-banner feedback-banner--credentials">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      <div><strong>Error</strong><p>{{ error() }}</p></div>
+    </div>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="guardar()" novalidate class="perfil-form">
+
+    <div class="field-grid">
+      <label class="field">
+        <span class="field-label">Nombres</span>
+        <input class="field-input"
+          [class.field-input--invalid]="form.controls.nombres.touched && form.controls.nombres.invalid"
+          type="text" formControlName="nombres" placeholder="Juan Pablo"/>
+        @if (form.controls.nombres.touched && form.controls.nombres.invalid) {
+          <span class="field-error">Mínimo 2 caracteres.</span>
+        }
+      </label>
+
+      <label class="field">
+        <span class="field-label">Apellidos</span>
+        <input class="field-input"
+          [class.field-input--invalid]="form.controls.apellidos.touched && form.controls.apellidos.invalid"
+          type="text" formControlName="apellidos" placeholder="Montoya"/>
+        @if (form.controls.apellidos.touched && form.controls.apellidos.invalid) {
+          <span class="field-error">Mínimo 2 caracteres.</span>
+        }
+      </label>
+    </div>
+
+    <div class="field-grid">
+      <label class="field">
+        <span class="field-label">Universidad <span class="optional-tag">Opcional</span></span>
+        <input class="field-input" type="text" formControlName="universidad"
+          placeholder="Ej: Universidad de Antioquia"/>
+      </label>
+
+      <label class="field">
+        <span class="field-label">Carrera <span class="optional-tag">Opcional</span></span>
+        <input class="field-input" type="text" formControlName="carrera"
+          placeholder="Ej: Ing. de Sistemas"/>
+      </label>
+    </div>
+
+    <div class="perfil-form__footer">
+      <button class="btn btn-primary" type="submit"
+        [class.btn-loading]="guardando()"
+        [disabled]="guardando() || form.invalid">
+        @if (!guardando()) { <i class="bi bi-check-lg"></i> Guardar cambios }
+      </button>
+    </div>
+
+  </form>
+
+  <div class="perfil-readonly">
+    <p class="section-kicker" style="margin-top:1.5rem">Datos de cuenta</p>
+    <div class="perfil-dato">
+      <span>Correo electrónico</span>
+      <strong>{{ usuario?.correo }}</strong>
+    </div>
+    <p class="field-hint" style="margin-top:.5rem">
+      El correo no puede modificarse. Contacta al administrador si necesitas cambiarlo.
+    </p>
+  </div>
+
+</section>

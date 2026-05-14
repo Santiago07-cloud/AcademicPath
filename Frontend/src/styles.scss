@@ -267,6 +267,28 @@ input[type='date']::-webkit-calendar-picker-indicator:hover {
 .field-hint { font-size: 0.8rem; color: var(--text-2); }
 .field-error { color: #ff8fa3; font-size: 0.8rem; }
 
+/* ── Native <select> — mismo look que el custom dropdown ── */
+select.field-input,
+select.field-select,
+.field-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238b98a8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  padding-right: 2.75rem;
+  cursor: pointer;
+  color-scheme: dark;
+}
+
+select.field-input option,
+select.field-select option,
+.field-select option {
+  background: #0d1117;
+  color: #f0f4f8;
+  padding: 0.5rem;
+}
+
 .select-shell {
   position: relative;
   display: grid;

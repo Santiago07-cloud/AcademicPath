@@ -43,6 +43,22 @@ public class PrerrequisitoServiceImpl implements PrerrequisitoService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<PrerrequisitoResponse> obtenerPrerrequisitosCompletosMateria(Long materiaId) {
+        return prerrequisitosRepository.findByMateriaId(materiaId)
+                .stream()
+                .map(p -> PrerrequisitoResponse.builder()
+                        .id(p.getId())
+                        .materiaId(p.getMateria().getId())
+                        .materiaNombre(p.getMateria().getNombre())
+                        .materiaPrerrequisitId(p.getMateriaPrerequisito().getId())
+                        .materiaPrerrequisitNombre(p.getMateriaPrerequisito().getNombre())
+                        .fechaCreacion(p.getFechaCreacion())
+                        .build())
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public Set<Long> calcularMateriasDisponibles(Long usuarioId) {
         // Evita N+1: carga todos los prerrequisitos de una vez y procesa en memoria
         Map<Long, List<Long>> prerrequisitosMap = prerrequisitosRepository.findAll()

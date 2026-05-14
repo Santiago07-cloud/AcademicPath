@@ -390,38 +390,13 @@
   font-size: 1.25rem; color: #f43f5e;
 }
 
-// ── Formulario ──
+// ── Formulario (hereda de styles.scss, solo se añade lo específico) ──
 .field { display: flex; flex-direction: column; gap: .4rem; }
 
 .field-label { font-size: .82rem; font-weight: 600; color: var(--text-2, #8a95a3); }
 
-.field-input,
-.field-select {
-  width: 100%;
-  padding: .7rem 1rem;
-  border-radius: 12px;
-  border: 1px solid var(--border);
-  background: rgba(255,255,255,.04);
-  color: var(--text, #e8eaf0);
-  font-size: .92rem;
-  outline: none;
-  transition: border-color .2s;
-  box-sizing: border-box;
-
-  &:focus { border-color: var(--accent); }
-}
-
-.field-select {
-  appearance: none; -webkit-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a95a3' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 1rem center;
-  padding-right: 2.5rem;
-  color-scheme: dark;
-
-  option { background: #10131e; color: #e8eaf0; }
-}
-
+// El arrow y color-scheme ya vienen del global styles.scss
+// Solo se mantiene el color del texto y el aspect ratio propio
 textarea.field-input { resize: vertical; min-height: 80px; }
 
 .calendar-panel {

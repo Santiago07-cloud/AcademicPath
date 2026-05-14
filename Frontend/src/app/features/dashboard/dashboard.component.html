@@ -9,7 +9,7 @@
     </div>
 
     <nav class="dashboard-nav">
-      @for (item of menuItems; track item.id) {
+      @for (item of menuItems(); track item.id) {
         <button
           type="button"
           class="dashboard-nav__item"
@@ -213,6 +213,26 @@
               </li>
             </ol>
           </article>
+        }
+
+        <!-- ── Perfil ── -->
+        @else if (seccionActiva() === 'perfil') {
+          <app-perfil></app-perfil>
+        }
+
+        <!-- ── Admin ── -->
+        @else if (seccionActiva() === 'admin') {
+          @if (isAdmin()) {
+            <app-admin></app-admin>
+          } @else {
+            <section class="surface-card panel-card">
+              <div class="dashboard-empty-state">
+                <i class="bi bi-shield-lock"></i>
+                <h3>Acceso restringido</h3>
+                <p>Tu cuenta no tiene permisos de administrador.</p>
+              </div>
+            </section>
+          }
         }
 
 

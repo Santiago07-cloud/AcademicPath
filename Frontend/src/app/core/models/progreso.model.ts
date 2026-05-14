@@ -1,5 +1,3 @@
-import { Materia } from './materia.model';
-
 export interface ProgresoAcademico {
   id?: number;
   usuarioId: number;
@@ -9,11 +7,16 @@ export interface ProgresoAcademico {
   fechaActualizacion?: string;
 }
 
-export interface SugerenciaMateria {
+export interface PrerrequisitoResponse {
   id: number;
-  usuarioId: number;
   materiaId: number;
-  disponible: boolean;
-  fechaGeneracion?: string;
-  materia?: Materia;
+  materiaNombre: string;
+  materiaPrerrequisitId: number;
+  materiaPrerrequisitNombre: string;
+  fechaCreacion?: string;
+}
+
+export interface PrerrequisitoRequest {
+  materiaId: number;
+  materiaPrerrequisitId: number;
 }

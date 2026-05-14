@@ -11,6 +11,7 @@ import {
   RegisterResponse,
   Usuario,
 } from '../models/usuario.model';
+import { ApiWrapper } from '../models/materia.model';
 
 interface MockUserRecord extends RegisterRequest {
   id: number;
@@ -42,65 +43,72 @@ export class AuthService {
     if (environment.useMockAuth) {
       this.resetSeededDemoState();
       this.seedMockUsers();
+    } else if (this.getToken()) {
+      // Refrescar perfil desde el backend para obtener rol actualizado
+      this.http
+        .get<ApiWrapper<Usuario>>(`${this.baseUrl}/profile`)
+        .pipe(map((w: ApiWrapper<Usuario>) => w.data), catchError(() => of(null)))
+        .subscribe((u: Usuario | null) => {
+          if (u) {
+            localStorage.setItem(this.userKey, JSON.stringify(u));
+            this.currentUserSubject.next(u);
+          }
+        });
     }
   }
 
   register(data: RegisterRequest): Observable<RegisterResponse> {
     if (environment.useMockAuth) {
-      const nuevoUsuario: MockUserRecord = {
-        id: Date.now(),
-        ...data,
-      };
-
-      const usuarios = this.getMockUsers().filter((usuario) => usuario.correo !== nuevoUsuario.correo);
+      const nuevoUsuario: MockUserRecord = { id: Date.now(), ...data };
+      const usuarios = this.getMockUsers().filter((u) => u.correo !== nuevoUsuario.correo);
       usuarios.push(nuevoUsuario);
       this.saveMockUsers(usuarios);
-
       const usuarioPublico = this.toUsuario(nuevoUsuario);
       this.persistMockSession(usuarioPublico, this.buildToken(usuarioPublico.id));
-
-      return of({
-        message: 'Usuario registrado exitosamente',
-        userId: usuarioPublico.id,
-      });
+      return of({ message: 'Usuario registrado exitosamente', userId: usuarioPublico.id });
     }
 
-    return this.http.post<{ success: boolean; data: RegisterResponse }>(`${this.baseUrl}/register`, data).pipe(
-      map((wrapper) => wrapper.data),
-      catchError(this.handleError),
-    );
+    return this.http
+      .post<ApiWrapper<RegisterResponse>>(`${this.baseUrl}/register`, data)
+      .pipe(map((w) => w.data), catchError(this.handleError));
   }
 
   login(data: LoginRequest): Observable<AuthResponse> {
     if (environment.useMockAuth) {
-      const usuarioRegistrado = this.getMockUsers().find(
-        (usuario) => usuario.correo.toLowerCase() === data.correo.toLowerCase(),
+      const found = this.getMockUsers().find(
+        (u) => u.correo.toLowerCase() === data.correo.toLowerCase(),
       );
-
-      if (usuarioRegistrado && usuarioRegistrado.contrasena !== data.contrasena) {
+      if (found && found.contrasena !== data.contrasena) {
         return throwError(() => new Error('Credenciales inválidas'));
       }
-
-      const usuario = usuarioRegistrado ? this.toUsuario(usuarioRegistrado) : this.createDemoUserFromLogin(data);
+      const usuario = found ? this.toUsuario(found) : this.createDemoUserFromLogin(data);
       const response = this.buildAuthResponse(usuario);
       this.persistMockSession(response.usuario, response.accessToken);
-
       return of(response);
     }
 
-    return this.http.post<{ success: boolean; data: AuthResponse }>(`${this.baseUrl}/login`, data).pipe(
-      tap((wrapper) => this.persistSession(wrapper.data)),
-      map((wrapper) => wrapper.data),
-      catchError(this.handleError),
-    );
+    return this.http
+      .post<ApiWrapper<AuthResponse>>(`${this.baseUrl}/login`, data)
+      .pipe(
+        tap((w) => this.persistSession(w.data)),
+        map((w) => w.data),
+        catchError(this.handleError),
+      );
   }
 
   profile(): Observable<Usuario> {
     if (environment.useMockAuth) {
       return of(this.currentUserSubject.value ?? this.toUsuario(this.demoUser));
     }
+    return this.http
+      .get<ApiWrapper<Usuario>>(`${this.baseUrl}/profile`)
+      .pipe(map((w) => w.data), catchError(this.handleError));
+  }
 
-    return this.http.get<Usuario>(`${this.baseUrl}/profile`).pipe(catchError(this.handleError));
+  /** Actualiza el usuario en memoria y en localStorage tras editar el perfil */
+  actualizarUsuarioLocal(usuario: Usuario): void {
+    localStorage.setItem(this.userKey, JSON.stringify(usuario));
+    this.currentUserSubject.next(usuario);
   }
 
   logout(): void {
@@ -135,30 +143,21 @@ export class AuthService {
   }
 
   private getStoredUser(): Usuario | null {
-    const rawUser = localStorage.getItem(this.userKey);
-    if (!rawUser) {
-      return null;
-    }
-
-    try {
-      return JSON.parse(rawUser) as Usuario;
-    } catch {
-      localStorage.removeItem(this.userKey);
-      return null;
-    }
+    const raw = localStorage.getItem(this.userKey);
+    if (!raw) return null;
+    try { return JSON.parse(raw) as Usuario; }
+    catch { localStorage.removeItem(this.userKey); return null; }
   }
 
   private seedMockUsers(): void {
     const usuarios = this.getMockUsers();
-
-    if (!usuarios.some((usuario) => usuario.correo === this.demoUser.correo)) {
+    if (!usuarios.some((u) => u.correo === this.demoUser.correo)) {
       this.saveMockUsers([this.demoUser, ...usuarios]);
     }
   }
 
   private resetSeededDemoState(): void {
     this.agendaService.clearTasksForUser(this.demoUser.id);
-
     if (this.currentUserSubject.value?.correo === this.demoUser.correo) {
       localStorage.removeItem(this.tokenKey);
       localStorage.removeItem(this.userKey);
@@ -167,32 +166,26 @@ export class AuthService {
   }
 
   private getMockUsers(): MockUserRecord[] {
-    const rawUsers = localStorage.getItem(this.mockUsersKey);
-
-    if (!rawUsers) {
-      return [this.demoUser];
-    }
-
+    const raw = localStorage.getItem(this.mockUsersKey);
+    if (!raw) return [this.demoUser];
     try {
-      const usuarios = JSON.parse(rawUsers) as MockUserRecord[];
-      return Array.isArray(usuarios) && usuarios.length ? usuarios : [this.demoUser];
-    } catch {
-      return [this.demoUser];
-    }
+      const list = JSON.parse(raw) as MockUserRecord[];
+      return Array.isArray(list) && list.length ? list : [this.demoUser];
+    } catch { return [this.demoUser]; }
   }
 
   private saveMockUsers(usuarios: MockUserRecord[]): void {
     localStorage.setItem(this.mockUsersKey, JSON.stringify(usuarios));
   }
 
-  private toUsuario(usuario: MockUserRecord): Usuario {
+  private toUsuario(u: MockUserRecord): Usuario {
     return {
-      id: usuario.id,
-      nombres: usuario.nombres,
-      apellidos: usuario.apellidos,
-      correo: usuario.correo,
-      universidad: usuario.universidad,
-      carrera: usuario.carrera,
+      id: u.id,
+      nombres: u.nombres,
+      apellidos: u.apellidos,
+      correo: u.correo,
+      universidad: u.universidad,
+      carrera: u.carrera,
     };
   }
 
@@ -201,9 +194,8 @@ export class AuthService {
     const nombres = localPart
       .split(/[._-]/)
       .filter(Boolean)
-      .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase())
+      .map((s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase())
       .join(' ');
-
     return {
       id: Date.now(),
       nombres: nombres || 'Usuario Demo',
@@ -219,21 +211,14 @@ export class AuthService {
   }
 
   private buildAuthResponse(usuario: Usuario): AuthResponse {
-    return {
-      accessToken: this.buildToken(usuario.id),
-      tokenType: 'Bearer',
-      expiresIn: 86400,
-      usuario,
-    };
+    return { accessToken: this.buildToken(usuario.id), tokenType: 'Bearer', expiresIn: 86400, usuario };
   }
 
   private handleError = (error: HttpErrorResponse) => {
     let mensaje = 'No se pudo completar la operación. Intenta de nuevo.';
-
     if (error.status === 0) {
       mensaje = 'No se pudo conectar con el servidor. Verifica tu conexión.';
     } else if (error.status === 400) {
-      // Errores de validación con mapa de campos
       if (error.error?.errors) {
         const campos = error.error.errors as Record<string, string>;
         mensaje = Object.values(campos).join(' ');
@@ -253,7 +238,6 @@ export class AuthService {
     } else if (error.error?.message) {
       mensaje = error.error.message;
     }
-
     return throwError(() => new Error(mensaje));
   };
 }
