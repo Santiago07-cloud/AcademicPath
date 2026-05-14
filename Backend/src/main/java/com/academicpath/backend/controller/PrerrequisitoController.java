@@ -36,7 +36,8 @@ public class PrerrequisitoController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> obtenerPrerrequisitos(@PathVariable Long materiaId) {
         Map<String, Object> response = new HashMap<>();
         response.put("materiaId", materiaId);
-        response.put("prerequisitos", prerrequisitosService.obtenerPrerrequisitosMateria(materiaId));
+        // Retorna objetos completos (con id, nombres) para que el frontend pueda mostrarlos
+        response.put("prerequisitos", prerrequisitosService.obtenerPrerrequisitosCompletosMateria(materiaId));
 
         return ResponseEntity.ok(ApiResponse.<Map<String, Object>>builder()
                 .success(true)

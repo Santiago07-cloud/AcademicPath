@@ -4,14 +4,17 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
+import { catchError, finalize } from 'rxjs/operators';
 import { AuthService } from '../../../core/services/auth.service';
 import { MateriaService } from '../../../core/services/materia.service';
 import { ProgresoService } from '../../../core/services/progreso.service';
+import { ProfesorService } from '../../../core/services/profesor.service';
 import {
   Materia, UsuarioMateria, Actividad, Calificacion,
   ActividadRequest, CalificacionRequest
 } from '../../../core/models/materia.model';
+import { Profesor } from '../../../core/models/profesor.model';
 
 type Vista = 'lista' | 'detalle';
 
@@ -24,10 +27,11 @@ type Vista = 'lista' | 'detalle';
   changeDetection: ChangeDetectionStrategy.Default,
 })
 export class MisMateriasComponent implements OnInit {
-  private readonly auth    = inject(AuthService);
-  private readonly svc     = inject(MateriaService);
+  private readonly auth     = inject(AuthService);
+  private readonly svc      = inject(MateriaService);
   private readonly progreso = inject(ProgresoService);
-  private readonly fb      = inject(FormBuilder);
+  private readonly profSvc  = inject(ProfesorService);
+  private readonly fb       = inject(FormBuilder);
 
   readonly currentUser = this.auth.currentUser;
 
@@ -37,12 +41,13 @@ export class MisMateriasComponent implements OnInit {
   error    = signal('');
 
   // ── Datos ──
-  catalogo              = signal<Materia[]>([]);
-  misInscripciones      = signal<UsuarioMateria[]>([]);
-  inscripcionActiva     = signal<UsuarioMateria | null>(null);
-  actividades           = signal<Actividad[]>([]);
+  catalogo                   = signal<Materia[]>([]);
+  misInscripciones           = signal<UsuarioMateria[]>([]);
+  inscripcionActiva          = signal<UsuarioMateria | null>(null);
+  actividades                = signal<Actividad[]>([]);
   calificacionesPorActividad = signal<Record<number, Calificacion[]>>({});
   promediosActuales          = signal<Record<number, number | null>>({});
+  profesores                 = signal<Profesor[]>([]);
 
   // ── Modals ──
   mostrarModalInscribir    = signal(false);
@@ -53,55 +58,36 @@ export class MisMateriasComponent implements OnInit {
   inscripcionACerrar       = signal<UsuarioMateria | null>(null);
   actividadSeleccionada    = signal<Actividad | null>(null);
   calificacionEditando     = signal<Calificacion | null>(null);
-  semestreDropdownOpen     = signal(false);
-  tipoDropdownOpen         = signal(false);
-  actividadCalendarOpen    = signal(false);
-  actividadCalendarMonth   = signal(this.startOfMonth(new Date()));
+
+  // Dropdowns
+  materiaDropdownOpen    = signal(false);
+  semestreDropdownOpen   = signal(false);
+  tipoDropdownOpen       = signal(false);
+  profesorDropdownOpen   = signal(false);
+  actividadCalendarOpen  = signal(false);
+  actividadCalendarMonth = signal(this.startOfMonth(new Date()));
+
   readonly actividadCalendarDays = computed(() => {
     const month = this.actividadCalendarMonth();
-    const year = month.getFullYear();
-    const monthIndex = month.getMonth();
-    const firstDay = new Date(year, monthIndex, 1);
-    const lastDay = new Date(year, monthIndex + 1, 0);
-    const leading = firstDay.getDay();
-    const totalDays = lastDay.getDate();
+    const year  = month.getFullYear();
+    const mi    = month.getMonth();
+    const leading   = new Date(year, mi, 1).getDay();
+    const totalDays = new Date(year, mi + 1, 0).getDate();
     const currentValue = this.formActividad.controls.fechaEntrega.value || this.dateInputValue(new Date());
     const selected = this.parseDate(currentValue);
-    const today = this.startOfDay(new Date());
+    const today    = this.startOfDay(new Date());
 
-    const days: Array<{
-      date: Date | null;
-      label: string;
-      isSelected: boolean;
-      isToday: boolean;
-      isCurrentMonth: boolean;
-    }> = [];
-
-    for (let i = 0; i < leading; i += 1) {
-      days.push({ date: null, label: '', isSelected: false, isToday: false, isCurrentMonth: false });
+    const days: Array<{ date: Date | null; label: string; isSelected: boolean; isToday: boolean }> = [];
+    for (let i = 0; i < leading; i++) days.push({ date: null, label: '', isSelected: false, isToday: false });
+    for (let d = 1; d <= totalDays; d++) {
+      const date = new Date(year, mi, d);
+      days.push({ date, label: String(d), isSelected: this.sameDay(date, selected), isToday: this.sameDay(date, today) });
     }
-
-    for (let day = 1; day <= totalDays; day += 1) {
-      const date = new Date(year, monthIndex, day);
-      const isSelected = this.sameDay(date, selected);
-      const isToday = this.sameDay(date, today);
-      days.push({
-        date,
-        label: String(day),
-        isSelected,
-        isToday,
-        isCurrentMonth: true,
-      });
-    }
-
-    while (days.length % 7 !== 0) {
-      days.push({ date: null, label: '', isSelected: false, isToday: false, isCurrentMonth: false });
-    }
-
+    while (days.length % 7 !== 0) days.push({ date: null, label: '', isSelected: false, isToday: false });
     return days;
   });
 
-  // ── Confirmacion ──
+  // ── Confirmación ──
   confirmTitulo  = signal('');
   confirmMensaje = signal('');
   private pendingAction: (() => void) | null = null;
@@ -114,61 +100,101 @@ export class MisMateriasComponent implements OnInit {
   }
 
   ejecutarConfirmacion(): void {
-    if (this.pendingAction) {
-      this.pendingAction();
-      this.pendingAction = null;
-    }
+    this.pendingAction?.();
+    this.pendingAction = null;
     this.mostrarModalConfirmar.set(false);
   }
 
-  toggleSemestreDropdown(): void {
+  // ── Dropdown helpers ──
+  @HostListener('document:click')
+  onDocumentClick(): void { this.closeDropdowns(); }
+
+  closeDropdowns(): void {
+    this.materiaDropdownOpen.set(false);
+    this.semestreDropdownOpen.set(false);
     this.tipoDropdownOpen.set(false);
+    this.profesorDropdownOpen.set(false);
     this.actividadCalendarOpen.set(false);
-    this.semestreDropdownOpen.update((open) => !open);
+  }
+
+  toggleMateriaDropdown(): void {
+    this.semestreDropdownOpen.set(false); this.tipoDropdownOpen.set(false);
+    this.profesorDropdownOpen.set(false); this.actividadCalendarOpen.set(false);
+    this.materiaDropdownOpen.update(o => !o);
+  }
+
+  selectMateriaInscribir(id: number): void {
+    this.formInscribir.controls.materiaId.setValue(id);
+    this.formInscribir.controls.materiaId.markAsTouched();
+    this.materiaDropdownOpen.set(false);
+  }
+
+  materiaSeleccionadaLabel(): string {
+    const id = this.formInscribir.controls.materiaId.value;
+    if (!id) return 'Selecciona una materia...';
+    const m = this.catalogo().find(x => x.id === Number(id));
+    return m ? `${m.codigo} — ${m.nombre}` : 'Selecciona una materia...';
+  }
+
+  toggleSemestreDropdown(): void {
+    this.materiaDropdownOpen.set(false); this.tipoDropdownOpen.set(false);
+    this.profesorDropdownOpen.set(false); this.actividadCalendarOpen.set(false);
+    this.semestreDropdownOpen.update(o => !o);
   }
 
   toggleTipoDropdown(): void {
-    this.semestreDropdownOpen.set(false);
-    this.actividadCalendarOpen.set(false);
-    this.tipoDropdownOpen.update((open) => !open);
+    this.materiaDropdownOpen.set(false); this.semestreDropdownOpen.set(false);
+    this.profesorDropdownOpen.set(false); this.actividadCalendarOpen.set(false);
+    this.tipoDropdownOpen.update(o => !o);
   }
 
-  closeDropdowns(): void {
-    this.semestreDropdownOpen.set(false);
-    this.tipoDropdownOpen.set(false);
-    this.actividadCalendarOpen.set(false);
+  toggleProfesorDropdown(): void {
+    this.materiaDropdownOpen.set(false); this.semestreDropdownOpen.set(false);
+    this.tipoDropdownOpen.set(false); this.actividadCalendarOpen.set(false);
+    this.profesorDropdownOpen.update(o => !o);
   }
 
-  selectSemestre(semestre: number): void {
-    this.formInscribir.controls.semestre.setValue(semestre);
+  selectSemestre(s: number): void {
+    this.formInscribir.controls.semestre.setValue(s);
     this.formInscribir.controls.semestre.markAsTouched();
     this.semestreDropdownOpen.set(false);
   }
 
-  selectTipo(tipo: string): void {
-    this.formActividad.controls.tipo.setValue(tipo as any);
+  selectTipo(t: string): void {
+    this.formActividad.controls.tipo.setValue(t as any);
     this.formActividad.controls.tipo.markAsTouched();
     this.tipoDropdownOpen.set(false);
   }
 
+  selectProfesor(id: number | null): void {
+    this.formInscribir.controls.profesorId.setValue(id);
+    this.profesorDropdownOpen.set(false);
+  }
+
   semestreSeleccionadoLabel(): string {
-    const value = this.formInscribir.controls.semestre.value;
-    return value ? `${value}°` : 'Selecciona semestre';
+    const v = this.formInscribir.controls.semestre.value;
+    return v ? `${v}°` : 'Selecciona semestre';
   }
 
   tipoSeleccionadoLabel(): string {
-    const value = this.formActividad.controls.tipo.value;
-    return value ? this.tipoLabel(value) : 'Selecciona tipo';
+    const v = this.formActividad.controls.tipo.value;
+    return v ? this.tipoLabel(v) : 'Selecciona tipo';
   }
 
+  profesorSeleccionadoLabel(): string {
+    const id = this.formInscribir.controls.profesorId.value;
+    if (!id) return 'Sin profesor (opcional)';
+    return this.profesores().find(p => p.id === id)?.nombre ?? 'Sin profesor';
+  }
+
+  // ── Calendario de actividad ──
   toggleActividadCalendar(): void {
-    this.semestreDropdownOpen.set(false);
-    this.tipoDropdownOpen.set(false);
-    this.actividadCalendarOpen.update((open) => !open);
-    const baseDate = this.formActividad.controls.fechaEntrega.value
+    this.semestreDropdownOpen.set(false); this.tipoDropdownOpen.set(false); this.profesorDropdownOpen.set(false);
+    this.actividadCalendarOpen.update(o => !o);
+    const base = this.formActividad.controls.fechaEntrega.value
       ? this.parseDate(this.formActividad.controls.fechaEntrega.value)
       : new Date();
-    this.actividadCalendarMonth.set(this.startOfMonth(baseDate));
+    this.actividadCalendarMonth.set(this.startOfMonth(base));
   }
 
   selectActividadDate(date: Date): void {
@@ -180,43 +206,35 @@ export class MisMateriasComponent implements OnInit {
   actividadCalendarLabel(): string {
     return new Intl.DateTimeFormat('es-CO', { month: 'long', year: 'numeric' })
       .format(this.actividadCalendarMonth())
-      .replace(/^./, (c) => c.toUpperCase());
+      .replace(/^./, c => c.toUpperCase());
   }
 
   actividadCalendarInputLabel(): string {
     const value = this.formActividad.controls.fechaEntrega.value || this.dateInputValue(new Date());
     return new Intl.DateTimeFormat('es-CO', { day: '2-digit', month: 'short', year: 'numeric' })
-      .format(this.parseDate(value))
-      .replace('.', '');
+      .format(this.parseDate(value)).replace('.', '');
   }
 
   actividadCalendarNextMonth(): void {
-    const current = this.actividadCalendarMonth();
-    this.actividadCalendarMonth.set(new Date(current.getFullYear(), current.getMonth() + 1, 1));
+    const c = this.actividadCalendarMonth();
+    this.actividadCalendarMonth.set(new Date(c.getFullYear(), c.getMonth() + 1, 1));
   }
 
   actividadCalendarPrevMonth(): void {
-    const current = this.actividadCalendarMonth();
-    this.actividadCalendarMonth.set(new Date(current.getFullYear(), current.getMonth() - 1, 1));
-  }
-
-  @HostListener('document:click')
-  onDocumentClick(): void {
-    this.closeDropdowns();
+    const c = this.actividadCalendarMonth();
+    this.actividadCalendarMonth.set(new Date(c.getFullYear(), c.getMonth() - 1, 1));
   }
 
   // ── Formularios ──
   formInscribir = this.fb.nonNullable.group({
-    // Datos de la nueva materia
-    codigo:      ['', Validators.required],
-    nombre:      ['', Validators.required],
-    creditos:    [3,  [Validators.required, Validators.min(1), Validators.max(20)]],
-    descripcion: [''],
-    // Datos de inscripción
+    materiaId:   [0,  Validators.required],
     semestre:    [1,  Validators.required],
     anio:        [new Date().getFullYear(), Validators.required],
     estado:      ['CURSANDO'],
+    profesorId:  [null as number | null],
   });
+
+  readonly materiaIdSeleccionada = computed(() => (this.formInscribir.controls.materiaId.value ?? 0) > 0);
 
   formActividad = this.fb.nonNullable.group({
     titulo:       ['', Validators.required],
@@ -246,43 +264,39 @@ export class MisMateriasComponent implements OnInit {
     return ap.reduce((s, i) => s + (i.notaFinal ?? 0), 0) / ap.length;
   });
 
-  // ── Peso / nota de la materia activa ──
   readonly pesoAcumulado = computed(() =>
     this.actividades().reduce((s, a) => s + (a.peso ?? 0), 0)
   );
 
   readonly pesoRestante = computed(() => Math.max(0, 100 - this.pesoAcumulado()));
-
   readonly pesoCompleto = computed(() => this.pesoAcumulado() >= 100);
 
   readonly notaInscripcionActiva = computed(() =>
     this.calcularNotaActual(this.actividades(), this.calificacionesPorActividad())
   );
 
-  // ── Nota maxima posible (con notas perfectas en lo que falta) ──
   readonly notaMaximaPosible = computed(() => {
     const acts = this.actividades();
     const cals = this.calificacionesPorActividad();
     if (!acts.length) return null;
-
     let notaPonderada = 0;
     for (const act of acts) {
       const cal = cals[act.id]?.[0];
-      const nota = cal != null ? cal.nota : act.notaMaxima; // asume max en pendientes
+      const nota = cal != null ? cal.nota : act.notaMaxima;
       notaPonderada += (nota / act.notaMaxima) * act.peso;
     }
     return Math.round((notaPonderada / 100) * 5 * 100) / 100;
   });
 
-  // ── Peso maximo permitido al crear nueva actividad ──
   pesoMaximoDisponible(): number {
     const actEdit = this.actividadSeleccionada();
-    const pesoActual = actEdit ? actEdit.peso : 0;
-    return this.pesoRestante() + pesoActual;
+    return this.pesoRestante() + (actEdit ? actEdit.peso : 0);
   }
 
+  // ── Lifecycle ──
   ngOnInit(): void { this.cargarDatos(); }
 
+  // ── Carga en paralelo con forkJoin ──
   cargarDatos(): void {
     const userId = this.currentUser?.id;
     if (!userId) { this.error.set('No hay usuario autenticado.'); return; }
@@ -290,41 +304,41 @@ export class MisMateriasComponent implements OnInit {
     this.cargando.set(true);
     this.error.set('');
 
-    this.svc.obtenerMaterias().subscribe({
-      next: (mats) => {
-        this.catalogo.set(Array.isArray(mats) ? mats : []);
-        this.cargarInscripciones(userId);
-      },
-      error: () => this.cargarInscripciones(userId)
-    });
-  }
+    forkJoin({
+      catalogo:      this.svc.obtenerMaterias().pipe(catchError(() => of([]))),
+      inscripciones: this.svc.obtenerMisMateriasInscritas(userId).pipe(catchError(() => of([]))),
+      profesores:    this.profSvc.obtenerTodos().pipe(catchError(() => of([]))),
+    }).pipe(
+      finalize(() => this.cargando.set(false))
+    ).subscribe({
+      next: ({ catalogo, inscripciones, profesores }) => {
+        const cats = Array.isArray(catalogo) ? catalogo : [];
+        const inscs = Array.isArray(inscripciones) ? inscripciones : [];
 
-  cargarInscripciones(userId: number): void {
-    this.svc.obtenerMisMateriasInscritas(userId).subscribe({
-      next: (inscs) => {
-        const lista = Array.isArray(inscs) ? inscs : [];
-        const enriquecidas = lista.map(i => ({
+        this.catalogo.set(cats);
+        this.profesores.set(Array.isArray(profesores) ? profesores : []);
+
+        const enriquecidas = inscs.map(i => ({
           ...i,
           materiaId: Number(i.materiaId),
-          materia: i.materia ?? this.catalogo().find(m => m.id === Number(i.materiaId))
+          materia: i.materia ?? cats.find(m => m.id === Number(i.materiaId)),
         }));
+
         this.misInscripciones.set(enriquecidas);
         this.cargarPromediosActuales(enriquecidas);
-        this.cargando.set(false);
       },
       error: () => {
-        this.misInscripciones.set([]);
-        this.cargando.set(false);
-        this.error.set('No se pudieron cargar tus materias.');
-      }
+        this.error.set('Error al cargar los datos. Intenta de nuevo.');
+        setTimeout(() => this.error.set(''), 5000);
+      },
     });
   }
 
   // ── Inscribir ──
   abrirModalInscribir(): void {
     this.formInscribir.reset({
-      codigo: '', nombre: '', creditos: 3, descripcion: '',
-      semestre: 1, anio: new Date().getFullYear(), estado: 'CURSANDO',
+      materiaId: 0, semestre: 1,
+      anio: new Date().getFullYear(), estado: 'CURSANDO', profesorId: null,
     });
     this.mostrarModalInscribir.set(true);
   }
@@ -332,43 +346,29 @@ export class MisMateriasComponent implements OnInit {
   inscribir(): void {
     if (this.formInscribir.invalid || !this.currentUser) return;
     const v = this.formInscribir.getRawValue();
+    const materiaId = Number(v.materiaId);
+    if (!materiaId) return;
 
-    // Paso 1: crear la materia
-    this.svc.crearMateria({
-      codigo:      v.codigo.toUpperCase().trim(),
-      nombre:      v.nombre.trim(),
-      creditos:    Number(v.creditos),
-      descripcion: v.descripcion.trim() || undefined,
+    this.svc.inscribirMateria({
+      usuarioId:  this.currentUser!.id,
+      materiaId,
+      profesorId: v.profesorId ?? null,
+      semestre:   Number(v.semestre),
+      anio:       Number(v.anio),
+      estado:     v.estado || 'CURSANDO',
     }).subscribe({
-      next: (materia) => {
-        // Paso 2: inscribir al usuario en la materia creada
-        this.svc.inscribirMateria({
-          usuarioId: this.currentUser!.id,
-          materiaId: materia.id,
-          semestre:  Number(v.semestre),
-          anio:      Number(v.anio),
-          estado:    v.estado || 'CURSANDO',
-        }).subscribe({
-          next: () => {
-            this.mostrarModalInscribir.set(false);
-            this.error.set('');
-            this.cargarDatos();
-            this.progreso.recalcularProgreso(this.currentUser!.id).subscribe();
-          },
-          error: (e) => {
-            this.mostrarModalInscribir.set(false);
-            this.error.set(e?.error?.message ?? 'Error al inscribir la materia');
-            setTimeout(() => this.error.set(''), 4000);
-          }
-        });
+      next: () => {
+        this.mostrarModalInscribir.set(false);
+        this.error.set('');
+        this.cargarDatos();
+        this.progreso.recalcularProgreso(this.currentUser!.id).subscribe();
       },
-      error: (e) => {
-        const msg = e?.error?.message ?? e?.message ?? '';
-        this.error.set(msg.includes('unique') || msg.includes('Duplicate')
-          ? `Ya existe una materia con el código ${v.codigo.toUpperCase()} — usa uno diferente`
-          : msg || 'Error al crear la materia');
-        setTimeout(() => this.error.set(''), 5000);
-      }
+      error: (e: any) => {
+        this.mostrarModalInscribir.set(false);
+        const msg = e?.error?.message ?? e?.message ?? 'Error al inscribir la materia';
+        this.error.set(msg);
+        setTimeout(() => this.error.set(''), 4000);
+      },
     });
   }
 
@@ -388,33 +388,42 @@ export class MisMateriasComponent implements OnInit {
   }
 
   cargarActividades(umId: number): void {
-    this.svc.obtenerActividades(umId).subscribe({
-      next: (acts) => {
+    this.svc.obtenerActividades(umId).pipe(
+      catchError(() => of([]))
+    ).subscribe({
+      next: (acts: Actividad[]) => {
         this.actividades.set(acts);
-        acts.forEach(a => this.cargarCalificaciones(a.id));
-      }
+        if (!acts.length) return;
+        // Cargar todas las calificaciones en paralelo
+        forkJoin(
+          acts.map(a => this.svc.obtenerCalificaciones(a.id).pipe(catchError(() => of([]))))
+        ).subscribe({
+          next: (calLists: Calificacion[][]) => {
+            const calMap: Record<number, Calificacion[]> = {};
+            acts.forEach((a, idx) => { calMap[a.id] = calLists[idx] ?? []; });
+            this.calificacionesPorActividad.set(calMap);
+          },
+        });
+      },
     });
   }
 
   cargarCalificaciones(actividadId: number): void {
-    this.svc.obtenerCalificaciones(actividadId).subscribe({
-      next: (cals) => this.calificacionesPorActividad.update(p => ({ ...p, [actividadId]: cals }))
+    this.svc.obtenerCalificaciones(actividadId).pipe(
+      catchError(() => of([]))
+    ).subscribe({
+      next: (cals: Calificacion[]) =>
+        this.calificacionesPorActividad.update(p => ({ ...p, [actividadId]: cals })),
     });
   }
 
   // ── Actividades CRUD ──
   abrirModalActividad(act?: Actividad): void {
     if (act) {
-      this.formActividad.patchValue({
-        titulo: act.titulo, tipo: act.tipo,
-        peso: act.peso, notaMaxima: act.notaMaxima,
-        fechaEntrega: act.fechaEntrega ?? '',
-      });
+      this.formActividad.patchValue({ titulo: act.titulo, tipo: act.tipo, peso: act.peso, notaMaxima: act.notaMaxima, fechaEntrega: act.fechaEntrega ?? '' });
       this.actividadSeleccionada.set(act);
     } else {
-      // Peso por defecto = min(20, restante)
-      const pesoDefault = Math.min(20, this.pesoRestante());
-      this.formActividad.reset({ titulo: '', tipo: 'parcial', peso: pesoDefault, notaMaxima: 5, fechaEntrega: '' });
+      this.formActividad.reset({ titulo: '', tipo: 'parcial', peso: Math.min(20, this.pesoRestante()), notaMaxima: 5, fechaEntrega: '' });
       this.actividadSeleccionada.set(null);
     }
     this.mostrarModalActividad.set(true);
@@ -423,15 +432,12 @@ export class MisMateriasComponent implements OnInit {
   guardarActividad(): void {
     if (this.formActividad.invalid || !this.inscripcionActiva()) return;
     const v = this.formActividad.getRawValue();
-
-    // Validacion de peso en frontend
     const pesoMax = this.pesoMaximoDisponible();
     if (Number(v.peso) > pesoMax) {
-      this.error.set(`El peso no puede superar ${pesoMax}%. Solo quedan ${this.pesoRestante()}% disponibles.`);
+      this.error.set(`El peso no puede superar ${pesoMax}%. Quedan ${this.pesoRestante()}% disponibles.`);
       setTimeout(() => this.error.set(''), 4000);
       return;
     }
-
     const payload: ActividadRequest = {
       usuarioMateriaId: this.inscripcionActiva()!.id,
       titulo: v.titulo, tipo: v.tipo,
@@ -439,25 +445,18 @@ export class MisMateriasComponent implements OnInit {
       fechaEntrega: v.fechaEntrega || undefined,
     };
     const actEdit = this.actividadSeleccionada();
-    const obs = actEdit
-      ? this.svc.actualizarActividad(actEdit.id, payload)
-      : this.svc.crearActividad(payload);
-
+    const obs = actEdit ? this.svc.actualizarActividad(actEdit.id, payload) : this.svc.crearActividad(payload);
     obs.subscribe({
-      next: () => {
-        this.mostrarModalActividad.set(false);
-        this.cargarActividades(this.inscripcionActiva()!.id);
-      },
-      error: (e) => this.error.set(e.message ?? 'Error al guardar actividad')
+      next: () => { this.mostrarModalActividad.set(false); this.cargarActividades(this.inscripcionActiva()!.id); },
+      error: (e: any) => this.error.set(e?.message ?? 'Error al guardar actividad'),
     });
   }
 
   eliminarActividad(id: number): void {
-    this.confirmar(
-      'Eliminar actividad',
-      'Se eliminara la actividad y todas sus calificaciones. Esta accion no se puede deshacer.',
-      () => this.svc.eliminarActividad(id).subscribe({
-        next: () => this.cargarActividades(this.inscripcionActiva()!.id)
+    this.confirmar('Eliminar actividad', 'Se eliminará la actividad y todas sus calificaciones.', () =>
+      this.svc.eliminarActividad(id).subscribe({
+        next: () => this.cargarActividades(this.inscripcionActiva()!.id),
+        error: (e: any) => this.error.set(e?.message ?? 'Error al eliminar actividad'),
       })
     );
   }
@@ -473,25 +472,18 @@ export class MisMateriasComponent implements OnInit {
 
   guardarCalificacion(): void {
     if (this.formCalificacion.invalid || !this.actividadSeleccionada()) return;
-    const v    = this.formCalificacion.getRawValue();
-    const act  = this.actividadSeleccionada()!;
-    const payload: CalificacionRequest = {
-      actividadId: act.id,
-      nota: Number(v.nota),
-      retroalimentacion: v.retroalimentacion,
-    };
+    const v   = this.formCalificacion.getRawValue();
+    const act = this.actividadSeleccionada()!;
+    const payload: CalificacionRequest = { actividadId: act.id, nota: Number(v.nota), retroalimentacion: v.retroalimentacion };
     const calEdit = this.calificacionEditando();
-    const obs = calEdit
-      ? this.svc.actualizarCalificacion(calEdit.id, payload)
-      : this.svc.crearCalificacion(payload);
-
+    const obs = calEdit ? this.svc.actualizarCalificacion(calEdit.id, payload) : this.svc.crearCalificacion(payload);
     obs.subscribe({
       next: () => {
         this.mostrarModalCalificacion.set(false);
         this.cargarCalificaciones(act.id);
         this.sincronizarNotaFinal();
       },
-      error: (e) => this.error.set(e.message ?? 'Error al guardar calificacion')
+      error: (e: any) => this.error.set(e?.message ?? 'Error al guardar calificación'),
     });
   }
 
@@ -500,18 +492,16 @@ export class MisMateriasComponent implements OnInit {
     const insc = this.inscripcionActiva();
     if (nota == null || !insc) return;
     this.svc.actualizarInscripcion(insc.id, {
-      usuarioId: insc.usuarioId,
-      materiaId: insc.materiaId,
-      semestre:  Number(insc.semestre),
-      anio:      insc.anio,
+      usuarioId: insc.usuarioId, materiaId: insc.materiaId,
+      semestre: Number(insc.semestre), anio: insc.anio,
       notaFinal: Math.round(nota * 100) / 100,
-    }).subscribe(() => {
-      if (this.currentUser) this.progreso.recalcularProgreso(this.currentUser.id).subscribe();
-      // Actualizar la inscripcion activa localmente para que la card se actualice
-      this.misInscripciones.update(list =>
-        list.map(i => i.id === insc.id ? { ...i, notaFinal: nota } : i)
-      );
-      this.promediosActuales.update(map => ({ ...map, [insc.id]: nota }));
+    }).subscribe({
+      next: () => {
+        if (this.currentUser) this.progreso.recalcularProgreso(this.currentUser.id).subscribe();
+        this.misInscripciones.update(list => list.map(i => i.id === insc.id ? { ...i, notaFinal: nota } : i));
+        this.promediosActuales.update(map => ({ ...map, [insc.id]: nota }));
+      },
+      error: () => {},
     });
   }
 
@@ -526,115 +516,39 @@ export class MisMateriasComponent implements OnInit {
     if (!insc) return;
     this.mostrarModalCerrar.set(false);
     this.svc.actualizarInscripcion(insc.id, {
-      usuarioId: insc.usuarioId,
-      materiaId: insc.materiaId,
-      semestre:  Number(insc.semestre),
-      anio:      insc.anio,
-      estado:    nuevoEstado,
-      notaFinal: insc.notaFinal ?? undefined,
+      usuarioId: insc.usuarioId, materiaId: insc.materiaId,
+      semestre: Number(insc.semestre), anio: insc.anio,
+      estado: nuevoEstado, notaFinal: insc.notaFinal ?? undefined,
     }).subscribe({
       next: () => {
-        this.misInscripciones.update(list =>
-          list.map(i => i.id === insc.id ? { ...i, estado: nuevoEstado } : i)
-        );
-        if (this.currentUser) {
-          this.progreso.recalcularProgreso(this.currentUser.id).subscribe();
-        }
+        this.misInscripciones.update(list => list.map(i => i.id === insc.id ? { ...i, estado: nuevoEstado } : i));
+        if (this.currentUser) this.progreso.recalcularProgreso(this.currentUser.id).subscribe();
       },
-      error: (e) => this.error.set(e?.message ?? 'Error al actualizar el estado')
+      error: (e: any) => this.error.set(e?.message ?? 'Error al actualizar el estado'),
     });
   }
 
-  esCursando(estado: string): boolean {
-    return estado === 'CURSANDO' || estado === 'activa';
-  }
-
-  esCerrada(estado: string): boolean {
-    return estado === 'APROBADA' || estado === 'REPROBADA';
-  }
-
   retirarMateria(id: number): void {
-    this.confirmar(
-      'Retirar materia',
-      'Se eliminara esta materia y todas sus actividades y calificaciones asociadas.',
-      () => this.svc.eliminarInscripcion(id).subscribe({
+    this.confirmar('Retirar materia', 'Se eliminará esta materia y todas sus actividades y calificaciones.', () =>
+      this.svc.eliminarInscripcion(id).subscribe({
         next: () => {
-          this.cargarInscripciones(this.currentUser!.id);
-          this.progreso.recalcularProgreso(this.currentUser!.id).subscribe();
-        }
+          this.cargarDatos();
+          if (this.currentUser) this.progreso.recalcularProgreso(this.currentUser.id).subscribe();
+        },
+        error: (e: any) => this.error.set(e?.message ?? 'Error al retirar materia'),
       })
     );
   }
 
-  // ── Promedio actual para cards ──
+  // ── Helpers ──
+  esCursando(estado: string): boolean { return estado === 'CURSANDO' || estado === 'activa'; }
+  esCerrada(estado: string): boolean  { return estado === 'APROBADA' || estado === 'REPROBADA'; }
+
   notaParaCard(insc: UsuarioMateria): number | null {
     if (this.esCerrada(insc.estado)) return insc.notaFinal ?? null;
     return this.promediosActuales()[insc.id] ?? null;
   }
 
-  private calcularNotaActual(
-    acts: Actividad[],
-    cals: Record<number, Calificacion[]>
-  ): number | null {
-    if (!acts.length) return null;
-
-    const pesoTotal = acts.reduce((s, a) => s + (a.peso ?? 0), 0);
-    let pesoConNota = 0;
-    let notaPonderada = 0;
-
-    for (const act of acts) {
-      const cal = cals[act.id]?.[0];
-      if (cal != null) {
-        notaPonderada += (cal.nota / act.notaMaxima) * act.peso;
-        pesoConNota   += act.peso;
-      }
-    }
-
-    if (!pesoConNota) return null;
-
-    const notaSobreEvaluado = (notaPonderada / pesoConNota) * 5;
-    const notaFinal = Math.round(notaSobreEvaluado * 100) / 100;
-
-    if (pesoTotal >= 100 && pesoConNota >= 100) return notaFinal;
-    return notaFinal;
-  }
-
-  private cargarPromediosActuales(inscs: UsuarioMateria[]): void {
-    const activas = inscs.filter(i => this.esCursando(i.estado));
-    this.promediosActuales.set({});
-    if (!activas.length) {
-      return;
-    }
-
-    activas.forEach(insc => {
-      this.svc.obtenerActividades(insc.id).subscribe({
-        next: (acts) => {
-          if (!acts.length) {
-            this.promediosActuales.update(map => ({ ...map, [insc.id]: null }));
-            return;
-          }
-
-          const calRequests = acts.map(a => this.svc.obtenerCalificaciones(a.id));
-          forkJoin(calRequests).subscribe({
-            next: (calLists) => {
-              const calMap: Record<number, Calificacion[]> = {};
-              acts.forEach((a, idx) => { calMap[a.id] = calLists[idx] ?? []; });
-              const nota = this.calcularNotaActual(acts, calMap);
-              this.promediosActuales.update(map => ({ ...map, [insc.id]: nota }));
-            },
-            error: () => {
-              this.promediosActuales.update(map => ({ ...map, [insc.id]: null }));
-            }
-          });
-        },
-        error: () => {
-          this.promediosActuales.update(map => ({ ...map, [insc.id]: null }));
-        }
-      });
-    });
-  }
-
-  // ── Helpers ──
   nombreMateria(materiaId: number): string {
     const insc = this.misInscripciones().find(i => i.materiaId === Number(materiaId));
     return insc?.materia?.nombre ?? this.catalogo().find(m => m.id === Number(materiaId))?.nombre ?? `Materia #${materiaId}`;
@@ -646,19 +560,16 @@ export class MisMateriasComponent implements OnInit {
   }
 
   tipoLabel(tipo: string): string {
-    const map: Record<string, string> = {
-      parcial: 'Parcial', quiz: 'Quiz', tarea: 'Tarea',
-      proyecto: 'Proyecto', laboratorio: 'Lab', otro: 'Otro'
-    };
+    const map: Record<string, string> = { parcial:'Parcial', quiz:'Quiz', tarea:'Tarea', proyecto:'Proyecto', laboratorio:'Lab', otro:'Otro' };
     return map[tipo] ?? tipo;
   }
 
   estadoClass(estado: string): string {
     const map: Record<string, string> = {
-      CURSANDO: 'chip-info',    activa:     'chip-info',
-      APROBADA: 'chip-success', aprobada:   'chip-success',
-      REPROBADA:'chip-danger',  reprobada:  'chip-danger',
-      RETIRADA: 'chip-warning', retirada:   'chip-warning',
+      CURSANDO:'chip-info', activa:'chip-info',
+      APROBADA:'chip-success', aprobada:'chip-success',
+      REPROBADA:'chip-danger', reprobada:'chip-danger',
+      RETIRADA:'chip-warning', retirada:'chip-warning',
     };
     return map[estado] ?? 'chip';
   }
@@ -671,31 +582,74 @@ export class MisMateriasComponent implements OnInit {
     return 'var(--danger)';
   }
 
-  private parseDate(dateValue: string): Date {
-    return new Date(`${dateValue}T12:00:00`);
+  private calcularNotaActual(acts: Actividad[], cals: Record<number, Calificacion[]>): number | null {
+    if (!acts.length) return null;
+    let pesoConNota = 0, notaPonderada = 0;
+    for (const act of acts) {
+      const cal = cals[act.id]?.[0];
+      if (cal != null) { notaPonderada += (cal.nota / act.notaMaxima) * act.peso; pesoConNota += act.peso; }
+    }
+    if (!pesoConNota) return null;
+    return Math.round(((notaPonderada / pesoConNota) * 5) * 100) / 100;
   }
 
-  private startOfMonth(date: Date): Date {
-    return new Date(date.getFullYear(), date.getMonth(), 1);
+  private cargarPromediosActuales(inscs: UsuarioMateria[]): void {
+    const activas = inscs.filter(i => this.esCursando(i.estado));
+    this.promediosActuales.set({});
+    if (!activas.length) return;
+
+    // Cargar actividades de todas las materias activas en paralelo
+    forkJoin(
+      activas.map(insc =>
+        this.svc.obtenerActividades(insc.id).pipe(catchError(() => of([])))
+      )
+    ).subscribe({
+      next: (actsPorMateria: Actividad[][]) => {
+        const materiasConActividades = activas.filter((_, i) => actsPorMateria[i].length > 0);
+        const actsContenido = actsPorMateria.filter(a => a.length > 0);
+
+        // Marcar las que no tienen actividades
+        activas.forEach((insc, i) => {
+          if (!actsPorMateria[i].length) {
+            this.promediosActuales.update(m => ({ ...m, [insc.id]: null }));
+          }
+        });
+
+        if (!materiasConActividades.length) return;
+
+        // Cargar todas las calificaciones en paralelo
+        forkJoin(
+          actsContenido.map(acts =>
+            forkJoin(
+              acts.map(a => this.svc.obtenerCalificaciones(a.id).pipe(catchError(() => of([]))))
+            )
+          )
+        ).subscribe({
+          next: (calsPorMateria: Calificacion[][][]) => {
+            materiasConActividades.forEach((insc, mi) => {
+              const acts = actsContenido[mi];
+              const calLists = calsPorMateria[mi];
+              const calMap: Record<number, Calificacion[]> = {};
+              acts.forEach((a, ai) => { calMap[a.id] = calLists[ai] ?? []; });
+              this.promediosActuales.update(m => ({
+                ...m,
+                [insc.id]: this.calcularNotaActual(acts, calMap),
+              }));
+            });
+          },
+        });
+      },
+    });
   }
 
-  private startOfDay(date: Date): Date {
-    const result = new Date(date);
-    result.setHours(0, 0, 0, 0);
-    return result;
-  }
-
+  private parseDate(v: string): Date { return new Date(`${v}T12:00:00`); }
+  private startOfMonth(d: Date): Date { return new Date(d.getFullYear(), d.getMonth(), 1); }
+  private startOfDay(d: Date): Date { const r = new Date(d); r.setHours(0,0,0,0); return r; }
   private sameDay(a: Date, b: Date): boolean {
-    return a.getFullYear() === b.getFullYear()
-      && a.getMonth() === b.getMonth()
-      && a.getDate() === b.getDate();
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
   }
-
-  private dateInputValue(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+  private dateInputValue(d: Date): string {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }
 
   readonly tiposActividad = ['parcial','quiz','tarea','proyecto','laboratorio','otro'];

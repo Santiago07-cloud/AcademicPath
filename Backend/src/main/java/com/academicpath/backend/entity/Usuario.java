@@ -35,6 +35,7 @@ public class Usuario {
     @Column(nullable = false)
     private String contrasena;
 
+    @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private RolUsuario rol = RolUsuario.ESTUDIANTE;

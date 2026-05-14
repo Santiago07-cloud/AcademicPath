@@ -1,11 +1,11 @@
 import { ChangeDetectionStrategy, Component, HostListener, computed, effect, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, Validators, FormBuilder } from '@angular/forms';
-import { toSignal } from '@angular/core/rxjs-interop';
 import { AuthService } from '../../../core/services/auth.service';
 import { AgendaService } from '../../../core/services/agenda.service';
 import { MateriaService } from '../../../core/services/materia.service';
 import { AgendaPrioridad, TareaAcademica } from '../../../core/models/agenda.model';
 import { Materia } from '../../../core/models/materia.model';
+import { Usuario } from '../../../core/models/usuario.model';
 
 @Component({
   selector: 'app-agenda',
@@ -24,9 +24,7 @@ export class AgendaComponent {
     month: 'short',
   });
 
-  readonly currentUser = toSignal(this.authService.currentUser$, {
-    initialValue: this.authService.currentUser,
-  });
+  readonly currentUser = signal<Usuario | null>(this.authService.currentUser);
 
   readonly taskForm = this.formBuilder.nonNullable.group({
     titulo: ['', [Validators.required, Validators.maxLength(80)]],

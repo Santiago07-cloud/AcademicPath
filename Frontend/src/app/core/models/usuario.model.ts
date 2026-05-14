@@ -5,6 +5,7 @@ export interface Usuario {
   correo: string;
   universidad?: string;
   carrera?: string;
+  rol?: string;
   fechaCreacion?: string;
   fechaActualizacion?: string;
 }
@@ -21,6 +22,13 @@ export interface RegisterRequest {
 export interface LoginRequest {
   correo: string;
   contrasena: string;
+}
+
+export interface UpdateUsuarioRequest {
+  nombres: string;
+  apellidos: string;
+  universidad?: string;
+  carrera?: string;
 }
 
 export interface AuthResponse {

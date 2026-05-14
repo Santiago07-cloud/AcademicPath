@@ -8,7 +8,11 @@ import java.util.Set;
 
 public interface PrerrequisitoService {
 
+    /** Retorna solo los IDs de las materias que son prerrequisito (uso interno). */
     List<Long> obtenerPrerrequisitosMateria(Long materiaId);
+
+    /** Retorna los objetos PrerrequisitoResponse completos para la vista del Admin. */
+    List<PrerrequisitoResponse> obtenerPrerrequisitosCompletosMateria(Long materiaId);
 
     Set<Long> calcularMateriasDisponibles(Long usuarioId);
 

@@ -19,7 +19,7 @@ public class UsuarioResponse {
     private String correo;
     private String universidad;
     private String carrera;
+    private String rol;
     private LocalDateTime fechaCreacion;
     private LocalDateTime fechaActualizacion;
 }
-
