@@ -22,6 +22,14 @@ Backend/build/
 !Backend/src/test/**/target/
 Backend/.mvn/wrapper/maven-wrapper.jar
 
+# ── Configuración sensible ───────────────────────────────────────────────────
+# application.properties (sin credenciales) SÍ se versiona
+# application-local.properties y application-*.properties NO
+Backend/src/main/resources/application-local.properties
+Backend/src/main/resources/application-local.yml
+Backend/src/main/resources/application-dev.properties
+Backend/src/main/resources/application-prod.properties
+
 # ── Frontend ─────────────────────────────────────────────────────────────────
 Frontend/node_modules/
 Frontend/dist/
@@ -47,6 +55,7 @@ logs/
 .env
 .env.local
 .env.*.local
-Frontend/node_modules/
-Frontend/.angular/
-Frontend/dist/
+
+# ── Legacy/deprecated ───────────────────────────────────────────────────────
+Backend/_deprecated/
+Backend/cleanup.ps1
