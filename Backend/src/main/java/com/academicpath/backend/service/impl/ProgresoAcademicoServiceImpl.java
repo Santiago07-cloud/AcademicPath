@@ -9,6 +9,7 @@ import com.academicpath.backend.entity.UsuarioMateria;
 import com.academicpath.backend.exception.ResourceNotFoundException;
 import com.academicpath.backend.repository.ProgresoAcademicoRepository;
 import com.academicpath.backend.repository.UsuarioMateriaRepository;
+import com.academicpath.backend.repository.UsuarioRepository;
 import com.academicpath.backend.service.ProgresoAcademicoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -25,6 +26,9 @@ public class ProgresoAcademicoServiceImpl implements ProgresoAcademicoService {
 
     @Autowired
     private UsuarioMateriaRepository usuarioMateriaRepository;
+
+    @Autowired
+    private UsuarioRepository usuarioRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -45,10 +49,25 @@ public class ProgresoAcademicoServiceImpl implements ProgresoAcademicoService {
     @Override
     @Transactional
     public void recalcularProgreso(Long usuarioId) {
+        // Si no existe el registro de progreso, lo inicializamos usando UsuarioRepository
         ProgresoAcademico progreso = progresoAcademicoRepository.findByUsuarioId(usuarioId)
-                .orElseThrow(() -> new ResourceNotFoundException("Progreso académico no encontrado para usuario: " + usuarioId));
+                .orElseGet(() -> {
+                    Usuario usuario = usuarioRepository.findById(usuarioId)
+                            .orElseThrow(() -> new ResourceNotFoundException(
+                                    "Usuario no encontrado con id: " + usuarioId));
+                    ProgresoAcademico nuevo = ProgresoAcademico.builder()
+                            .usuario(usuario)
+                            .creditosTotales(0)
+                            .creditosAprobados(0)
+                            .promedio(0.0)
+                            .fechaActualizacion(LocalDateTime.now())
+                            .build();
+                    return progresoAcademicoRepository.save(nuevo);
+                });
 
-        List<UsuarioMateria> todasLasMaterias = usuarioMateriaRepository.findByUsuarioId(usuarioId);
+        // Usar query con JOIN FETCH para cargar actividades y calificaciones en memoria
+        // y evitar LazyInitializationException al iterar
+        List<UsuarioMateria> todasLasMaterias = usuarioMateriaRepository.findByUsuarioIdConActividades(usuarioId);
 
         int creditosTotales = 0;
         int creditosAprobados = 0;
@@ -58,14 +77,15 @@ public class ProgresoAcademicoServiceImpl implements ProgresoAcademicoService {
         for (UsuarioMateria usuarioMateria : todasLasMaterias) {
             creditosTotales += usuarioMateria.getMateria().getCreditos();
 
-            if ("APROBADO".equals(usuarioMateria.getEstado())) {
+            // Comparación normalizada: acepta APROBADO, aprobada, Aprobada, etc.
+            String estado = usuarioMateria.getEstado();
+            if (estado != null && estado.trim().toLowerCase().startsWith("aprobad")) {
                 creditosAprobados += usuarioMateria.getMateria().getCreditos();
                 promedioTotal += calcularPromedioPonderado(usuarioMateria);
                 contadorAprobadas++;
             }
         }
 
-        // Dividir solo entre materias aprobadas, no entre todas las materias
         double promedioPonderado = contadorAprobadas == 0 ? 0.0 : promedioTotal / contadorAprobadas;
 
         progreso.setCreditosTotales(creditosTotales);
