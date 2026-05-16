@@ -3,8 +3,6 @@ package com.academicpath.backend.controller;
 import com.academicpath.backend.dto.request.CalificacionRequest;
 import com.academicpath.backend.dto.response.ApiResponse;
 import com.academicpath.backend.dto.response.CalificacionResponse;
-import com.academicpath.backend.entity.Actividad;
-import com.academicpath.backend.entity.UsuarioMateria;
 import com.academicpath.backend.exception.ResourceNotFoundException;
 import com.academicpath.backend.repository.ActividadRepository;
 import com.academicpath.backend.security.SecurityUtils;
@@ -36,13 +34,13 @@ public class CalificacionController {
     private ActividadRepository actividadRepository;
 
     /**
-     * Resuelve el usuarioId dueño de una Actividad (via su UsuarioMateria) y valida ownership.
+     * Resuelve el usuarioId dueño de una Actividad con un query directo (sin lazy loading)
+     * y valida que el usuario actual sea el propietario o admin.
      */
     private void validarOwnershipPorActividad(Long actividadId) {
-        Actividad actividad = actividadRepository.findById(actividadId)
+        Long usuarioPropietarioId = actividadRepository.findUsuarioIdByActividadId(actividadId)
                 .orElseThrow(() -> new ResourceNotFoundException("Actividad no encontrada con id: " + actividadId));
-        UsuarioMateria um = actividad.getUsuarioMateria();
-        securityUtils.validarPropietario(um.getUsuario().getId());
+        securityUtils.validarPropietario(usuarioPropietarioId);
     }
 
     @PostMapping

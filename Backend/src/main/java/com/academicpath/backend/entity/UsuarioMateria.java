@@ -33,11 +33,6 @@ public class UsuarioMateria {
     @ToString.Exclude
     private Materia materia;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "profesor_id")
-    @ToString.Exclude
-    private Profesor profesor;
-
     @Column(nullable = false)
     private Integer semestre;
 

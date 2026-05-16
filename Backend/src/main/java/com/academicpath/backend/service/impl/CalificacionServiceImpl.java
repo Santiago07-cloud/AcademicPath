@@ -40,6 +40,9 @@ public class CalificacionServiceImpl implements CalificacionService {
 
         validarNota(request.getNota(), actividad.getNotaMaxima());
 
+        // Extraer usuarioId mientras la sesión JPA está abierta y las relaciones lazy accesibles
+        Long usuarioId = actividad.getUsuarioMateria().getUsuario().getId();
+
         Calificacion calificacion = Calificacion.builder()
                 .actividad(actividad)
                 .nota(request.getNota())
@@ -48,8 +51,6 @@ public class CalificacionServiceImpl implements CalificacionService {
 
         CalificacionResponse response = calificacionMapper.toResponse(calificacionRepository.save(calificacion));
 
-        // Recalcular progreso académico automáticamente
-        Long usuarioId = actividad.getUsuarioMateria().getUsuario().getId();
         progresoAcademicoService.recalcularProgreso(usuarioId);
 
         return response;

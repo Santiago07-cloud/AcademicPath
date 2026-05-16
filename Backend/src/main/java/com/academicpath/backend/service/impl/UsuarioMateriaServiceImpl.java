@@ -3,14 +3,12 @@ package com.academicpath.backend.service.impl;
 import com.academicpath.backend.dto.request.UsuarioMateriaRequest;
 import com.academicpath.backend.dto.response.UsuarioMateriaResponse;
 import com.academicpath.backend.entity.Materia;
-import com.academicpath.backend.entity.Profesor;
 import com.academicpath.backend.entity.Usuario;
 import com.academicpath.backend.entity.UsuarioMateria;
 import com.academicpath.backend.exception.ResourceNotFoundException;
 import com.academicpath.backend.exception.UsuarioException;
 import com.academicpath.backend.mapper.UsuarioMateriaMapper;
 import com.academicpath.backend.repository.MateriaRepository;
-import com.academicpath.backend.repository.ProfesorRepository;
 import com.academicpath.backend.repository.UsuarioMateriaRepository;
 import com.academicpath.backend.repository.UsuarioRepository;
 import com.academicpath.backend.service.PrerrequisitoService;
@@ -33,9 +31,6 @@ public class UsuarioMateriaServiceImpl implements UsuarioMateriaService {
 
     @Autowired
     private MateriaRepository materiaRepository;
-
-    @Autowired
-    private ProfesorRepository profesorRepository;
 
     @Autowired
     private PrerrequisitoService prerrequisitosService;
@@ -63,18 +58,12 @@ public class UsuarioMateriaServiceImpl implements UsuarioMateriaService {
             throw new UsuarioException("El usuario no cumple con los prerrequisitos de esta materia");
         }
 
-        Profesor profesor = null;
-        if (request.getProfesorId() != null) {
-            profesor = profesorRepository.findById(request.getProfesorId()).orElse(null);
-        }
-
         String estado = (request.getEstado() != null && !request.getEstado().isBlank())
                 ? request.getEstado() : "CURSANDO";
 
         UsuarioMateria usuarioMateria = UsuarioMateria.builder()
                 .usuario(usuario)
                 .materia(materia)
-                .profesor(profesor)
                 .semestre(request.getSemestre())
                 .anio(request.getAnio())
                 .estado(estado)
@@ -107,9 +96,6 @@ public class UsuarioMateriaServiceImpl implements UsuarioMateriaService {
         UsuarioMateria usuarioMateria = usuarioMateriaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario-Materia no encontrada con id: " + id));
 
-        if (request.getProfesorId() != null) {
-            usuarioMateria.setProfesor(profesorRepository.findById(request.getProfesorId()).orElse(null));
-        }
         if (request.getSemestre() != null) usuarioMateria.setSemestre(request.getSemestre());
         if (request.getAnio() != null) usuarioMateria.setAnio(request.getAnio());
 

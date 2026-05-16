@@ -20,4 +20,17 @@ public interface UsuarioMateriaRepository extends JpaRepository<UsuarioMateria, 
 
     @Query("SELECT um FROM UsuarioMateria um WHERE um.usuario.id = :usuarioId AND um.estado = 'APROBADO'")
     List<UsuarioMateria> findAprobadosByUsuarioId(@Param("usuarioId") Long usuarioId);
+
+    /**
+     * Carga todas las materias del usuario con sus actividades y calificaciones
+     * en una sola query para evitar LazyInitializationException en recalcularProgreso.
+     */
+    @Query("""
+        SELECT DISTINCT um FROM UsuarioMateria um
+        LEFT JOIN FETCH um.materia
+        LEFT JOIN FETCH um.actividades a
+        LEFT JOIN FETCH a.calificaciones
+        WHERE um.usuario.id = :usuarioId
+    """)
+    List<UsuarioMateria> findByUsuarioIdConActividades(@Param("usuarioId") Long usuarioId);
 }

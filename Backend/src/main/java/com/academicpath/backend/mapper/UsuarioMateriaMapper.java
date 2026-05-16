@@ -12,8 +12,8 @@ public interface UsuarioMateriaMapper {
     @Mapping(target = "usuarioId",     source = "usuario.id")
     @Mapping(target = "materiaId",     source = "materia.id")
     @Mapping(target = "materiaNombre", source = "materia.nombre")
-    @Mapping(target = "profesorId",    source = "profesor.id")
-    @Mapping(target = "profesorNombre",source = "profesor.nombre")
+    @Mapping(target = "profesorId",    ignore = true)
+    @Mapping(target = "profesorNombre",ignore = true)
     @Mapping(target = "materia",       source = "materia")
     UsuarioMateriaResponse toResponse(UsuarioMateria usuarioMateria);
 
