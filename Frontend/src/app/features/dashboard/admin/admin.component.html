@@ -4,7 +4,7 @@
     <div>
       <p class="section-kicker">Administración</p>
       <h2 class="section-heading">Panel de admin</h2>
-      <p class="section-copy">Gestión global de usuarios, materias, profesores y prerrequisitos.</p>
+      <p class="section-copy">Gestión global de usuarios, materias y prerrequisitos.</p>
     </div>
     <button class="btn btn-secondary btn-sm" (click)="cargarTodo()" title="Recargar datos">
       <i class="bi bi-arrow-clockwise"></i> Actualizar
@@ -33,18 +33,16 @@
         <i [class]="tab.icon"></i> {{ tab.label }}
         <span class="tab-badge">
           @if (tab.id === 'usuarios')       { {{ usuarios().length }} }
-          @if (tab.id === 'materias')       { {{ materias().length }} }
-          @if (tab.id === 'profesores')     { {{ profesores().length }} }
           @if (tab.id === 'prerrequisitos') { {{ prereqs().length }} }
         </span>
       </button>
     }
   </div>
 
-  <!-- ── USUARIOS ── -->
+  <!-- ── USUARIOS (con accordion de materias) ── -->
   @if (tabActiva() === 'usuarios') {
     <div class="admin-section">
-      <p class="admin-section__hint">Vista de solo lectura. Los usuarios se crean desde el registro.</p>
+      <p class="admin-section__hint">Vista de solo lectura. Expande un usuario para ver sus materias inscritas.</p>
       @if (cargando()) {
         <div class="admin-loading"><div class="spinner"></div> Cargando...</div>
       } @else if (usuarios().length === 0) {
@@ -53,11 +51,27 @@
         <div class="admin-table-wrap">
           <table class="admin-table">
             <thead>
-              <tr><th>#</th><th>Nombre</th><th>Correo</th><th>Universidad</th><th>Carrera</th><th>Rol</th><th></th></tr>
+              <tr>
+                <th style="width:2.5rem"></th>
+                <th>#</th>
+                <th>Nombre</th>
+                <th>Correo</th>
+                <th>Universidad</th>
+                <th>Carrera</th>
+                <th>Rol</th>
+                <th></th>
+              </tr>
             </thead>
             <tbody>
               @for (u of usuarios(); track u.id) {
-                <tr>
+                <!-- Fila del usuario -->
+                <tr class="usuario-row" [class.usuario-row--expanded]="expandidoId() === u.id"
+                    (click)="toggleMaterias(u)" style="cursor:pointer">
+                  <td class="expand-cell">
+                    <span class="expand-icon" [class.expanded]="expandidoId() === u.id">
+                      <i class="bi bi-chevron-right"></i>
+                    </span>
+                  </td>
                   <td class="muted">{{ u.id }}</td>
                   <td><strong>{{ u.nombres }} {{ u.apellidos }}</strong></td>
                   <td class="muted">{{ u.correo }}</td>
@@ -72,87 +86,49 @@
                     </button>
                   </td>
                 </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
-    </div>
-  }
 
-  <!-- ── MATERIAS ── -->
-  @if (tabActiva() === 'materias') {
-    <div class="admin-section">
-      <div class="admin-section__head">
-        <span class="chip">{{ materias().length }} materias en catálogo</span>
-        <button class="btn btn-primary btn-sm" (click)="abrirModalMateria()">
-          <i class="bi bi-plus-lg"></i> Nueva materia
-        </button>
-      </div>
-      @if (materias().length === 0) {
-        <div class="admin-empty"><i class="bi bi-book"></i><p>Sin materias creadas</p></div>
-      } @else {
-        <div class="admin-table-wrap">
-          <table class="admin-table">
-            <thead>
-              <tr><th>Código</th><th>Nombre</th><th>Créditos</th><th>Descripción</th><th></th></tr>
-            </thead>
-            <tbody>
-              @for (m of materias(); track m.id) {
-                <tr>
-                  <td><span class="chip">{{ m.codigo }}</span></td>
-                  <td><strong>{{ m.nombre }}</strong></td>
-                  <td class="muted center">{{ m.creditos }}</td>
-                  <td class="muted truncate">{{ m.descripcion || '—' }}</td>
-                  <td class="actions-cell">
-                    <button class="btn-icon-sm btn-icon-accent" title="Editar" (click)="abrirModalMateria(m)">
-                      <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="btn-icon-sm btn-icon-danger" title="Eliminar" (click)="confirmarEliminarMateria(m)">
-                      <i class="bi bi-trash3"></i>
-                    </button>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
-    </div>
-  }
-
-  <!-- ── PROFESORES ── -->
-  @if (tabActiva() === 'profesores') {
-    <div class="admin-section">
-      <div class="admin-section__head">
-        <span class="chip">{{ profesores().length }} profesores</span>
-        <button class="btn btn-primary btn-sm" (click)="abrirModalProfesor()">
-          <i class="bi bi-plus-lg"></i> Nuevo profesor
-        </button>
-      </div>
-      @if (profesores().length === 0) {
-        <div class="admin-empty"><i class="bi bi-person-badge"></i><p>Sin profesores registrados</p></div>
-      } @else {
-        <div class="admin-table-wrap">
-          <table class="admin-table">
-            <thead>
-              <tr><th>#</th><th>Nombre</th><th>Correo</th><th></th></tr>
-            </thead>
-            <tbody>
-              @for (p of profesores(); track p.id) {
-                <tr>
-                  <td class="muted">{{ p.id }}</td>
-                  <td><strong>{{ p.nombre }}</strong></td>
-                  <td class="muted">{{ p.correo }}</td>
-                  <td class="actions-cell">
-                    <button class="btn-icon-sm btn-icon-accent" title="Editar" (click)="abrirModalProfesor(p)">
-                      <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="btn-icon-sm btn-icon-danger" title="Eliminar" (click)="confirmarEliminarProfesor(p)">
-                      <i class="bi bi-trash3"></i>
-                    </button>
-                  </td>
-                </tr>
+                <!-- Fila expandida: materias del usuario -->
+                @if (expandidoId() === u.id) {
+                  <tr class="materias-row">
+                    <td colspan="7" class="materias-cell">
+                      @if (cargandoMaterias()) {
+                        <div class="materias-loading">
+                          <div class="spinner spinner--sm"></div> Cargando materias...
+                        </div>
+                      } @else if (materiasExpandidas().length === 0) {
+                        <div class="materias-empty">
+                          <i class="bi bi-book"></i> Este usuario no tiene materias inscritas.
+                        </div>
+                      } @else {
+                        <div class="materias-header">
+                          <i class="bi bi-journal-text"></i>
+                          <strong>{{ u.nombres }} {{ u.apellidos }}</strong>
+                          <span class="chip" style="margin-left:.5rem">{{ materiasExpandidas().length }} materias</span>
+                        </div>
+                        <table class="materias-table">
+                          <thead>
+                            <tr>
+                              <th>Materia</th>
+                              <th>Semestre / Año</th>
+                              <th>Estado</th>
+                              <th class="center">Nota final</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            @for (um of materiasExpandidas(); track um.id) {
+                              <tr>
+                                <td><strong>{{ um.materia?.nombre ?? um.materiaNombre ?? 'Materia #' + um.materiaId }}</strong></td>
+                                <td class="muted">{{ um.semestre }}S · {{ um.anio }}</td>
+                                <td><span [class]="estadoChipClass(um.estado)">{{ um.estado }}</span></td>
+                                <td class="center muted">{{ um.notaFinal != null ? um.notaFinal : '—' }}</td>
+                              </tr>
+                            }
+                          </tbody>
+                        </table>
+                      }
+                    </td>
+                  </tr>
+                }
               }
             </tbody>
           </table>
@@ -231,34 +207,6 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" (click)="modalMateria.set(false)">Cancelar</button>
           <button type="submit" class="btn btn-primary" [disabled]="formMateria.invalid">
-            <i class="bi bi-check-lg"></i> Guardar
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-}
-
-<!-- ═══════════ MODAL: Profesor ═══════════ -->
-@if (modalProfesor()) {
-  <div class="modal-overlay" (click)="modalProfesor.set(false)">
-    <div class="modal-card" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h3>{{ profesorEditando() ? 'Editar profesor' : 'Nuevo profesor' }}</h3>
-        <button class="btn-icon-sm" (click)="modalProfesor.set(false)"><i class="bi bi-x-lg"></i></button>
-      </div>
-      <form [formGroup]="formProfesor" (ngSubmit)="guardarProfesor()">
-        <label class="field">
-          <span class="field-label">Nombre completo</span>
-          <input class="field-input" type="text" formControlName="nombre" placeholder="Dr. García López"/>
-        </label>
-        <label class="field">
-          <span class="field-label">Correo institucional</span>
-          <input class="field-input" type="email" formControlName="correo" placeholder="prof@universidad.edu.co"/>
-        </label>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="modalProfesor.set(false)">Cancelar</button>
-          <button type="submit" class="btn btn-primary" [disabled]="formProfesor.invalid">
             <i class="bi bi-check-lg"></i> Guardar
           </button>
         </div>

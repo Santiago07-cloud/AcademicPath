@@ -26,12 +26,12 @@ export interface UsuarioMateria {
   notaFinal?: number | null;
   fechaCreacion?: string;
   materia?: Materia;
+  materiaNombre?: string;
 }
 
 export interface InscripcionMateriaRequest {
   usuarioId: number;
   materiaId: number;
-  profesorId?: number | null;
   semestre: number;
   anio: number;
   estado?: string;

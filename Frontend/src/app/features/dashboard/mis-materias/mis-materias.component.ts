@@ -9,12 +9,10 @@ import { catchError, finalize } from 'rxjs/operators';
 import { AuthService } from '../../../core/services/auth.service';
 import { MateriaService } from '../../../core/services/materia.service';
 import { ProgresoService } from '../../../core/services/progreso.service';
-import { ProfesorService } from '../../../core/services/profesor.service';
 import {
   Materia, UsuarioMateria, Actividad, Calificacion,
   ActividadRequest, CalificacionRequest
 } from '../../../core/models/materia.model';
-import { Profesor } from '../../../core/models/profesor.model';
 
 type Vista = 'lista' | 'detalle';
 
@@ -30,7 +28,6 @@ export class MisMateriasComponent implements OnInit {
   private readonly auth     = inject(AuthService);
   private readonly svc      = inject(MateriaService);
   private readonly progreso = inject(ProgresoService);
-  private readonly profSvc  = inject(ProfesorService);
   private readonly fb       = inject(FormBuilder);
 
   readonly currentUser = this.auth.currentUser;
@@ -47,7 +44,6 @@ export class MisMateriasComponent implements OnInit {
   actividades                = signal<Actividad[]>([]);
   calificacionesPorActividad = signal<Record<number, Calificacion[]>>({});
   promediosActuales          = signal<Record<number, number | null>>({});
-  profesores                 = signal<Profesor[]>([]);
 
   // ── Modals ──
   mostrarModalInscribir    = signal(false);
@@ -63,7 +59,6 @@ export class MisMateriasComponent implements OnInit {
   materiaDropdownOpen    = signal(false);
   semestreDropdownOpen   = signal(false);
   tipoDropdownOpen       = signal(false);
-  profesorDropdownOpen   = signal(false);
   actividadCalendarOpen  = signal(false);
   actividadCalendarMonth = signal(this.startOfMonth(new Date()));
 
@@ -113,13 +108,12 @@ export class MisMateriasComponent implements OnInit {
     this.materiaDropdownOpen.set(false);
     this.semestreDropdownOpen.set(false);
     this.tipoDropdownOpen.set(false);
-    this.profesorDropdownOpen.set(false);
     this.actividadCalendarOpen.set(false);
   }
 
   toggleMateriaDropdown(): void {
     this.semestreDropdownOpen.set(false); this.tipoDropdownOpen.set(false);
-    this.profesorDropdownOpen.set(false); this.actividadCalendarOpen.set(false);
+    this.actividadCalendarOpen.set(false);
     this.materiaDropdownOpen.update(o => !o);
   }
 
@@ -138,20 +132,14 @@ export class MisMateriasComponent implements OnInit {
 
   toggleSemestreDropdown(): void {
     this.materiaDropdownOpen.set(false); this.tipoDropdownOpen.set(false);
-    this.profesorDropdownOpen.set(false); this.actividadCalendarOpen.set(false);
+    this.actividadCalendarOpen.set(false);
     this.semestreDropdownOpen.update(o => !o);
   }
 
   toggleTipoDropdown(): void {
     this.materiaDropdownOpen.set(false); this.semestreDropdownOpen.set(false);
-    this.profesorDropdownOpen.set(false); this.actividadCalendarOpen.set(false);
+    this.actividadCalendarOpen.set(false);
     this.tipoDropdownOpen.update(o => !o);
-  }
-
-  toggleProfesorDropdown(): void {
-    this.materiaDropdownOpen.set(false); this.semestreDropdownOpen.set(false);
-    this.tipoDropdownOpen.set(false); this.actividadCalendarOpen.set(false);
-    this.profesorDropdownOpen.update(o => !o);
   }
 
   selectSemestre(s: number): void {
@@ -166,11 +154,6 @@ export class MisMateriasComponent implements OnInit {
     this.tipoDropdownOpen.set(false);
   }
 
-  selectProfesor(id: number | null): void {
-    this.formInscribir.controls.profesorId.setValue(id);
-    this.profesorDropdownOpen.set(false);
-  }
-
   semestreSeleccionadoLabel(): string {
     const v = this.formInscribir.controls.semestre.value;
     return v ? `${v}°` : 'Selecciona semestre';
@@ -181,15 +164,9 @@ export class MisMateriasComponent implements OnInit {
     return v ? this.tipoLabel(v) : 'Selecciona tipo';
   }
 
-  profesorSeleccionadoLabel(): string {
-    const id = this.formInscribir.controls.profesorId.value;
-    if (!id) return 'Sin profesor (opcional)';
-    return this.profesores().find(p => p.id === id)?.nombre ?? 'Sin profesor';
-  }
-
   // ── Calendario de actividad ──
   toggleActividadCalendar(): void {
-    this.semestreDropdownOpen.set(false); this.tipoDropdownOpen.set(false); this.profesorDropdownOpen.set(false);
+    this.semestreDropdownOpen.set(false); this.tipoDropdownOpen.set(false);
     this.actividadCalendarOpen.update(o => !o);
     const base = this.formActividad.controls.fechaEntrega.value
       ? this.parseDate(this.formActividad.controls.fechaEntrega.value)
@@ -231,7 +208,6 @@ export class MisMateriasComponent implements OnInit {
     semestre:    [1,  Validators.required],
     anio:        [new Date().getFullYear(), Validators.required],
     estado:      ['CURSANDO'],
-    profesorId:  [null as number | null],
   });
 
   readonly materiaIdSeleccionada = computed(() => (this.formInscribir.controls.materiaId.value ?? 0) > 0);
@@ -307,16 +283,14 @@ export class MisMateriasComponent implements OnInit {
     forkJoin({
       catalogo:      this.svc.obtenerMaterias().pipe(catchError(() => of([]))),
       inscripciones: this.svc.obtenerMisMateriasInscritas(userId).pipe(catchError(() => of([]))),
-      profesores:    this.profSvc.obtenerTodos().pipe(catchError(() => of([]))),
     }).pipe(
       finalize(() => this.cargando.set(false))
     ).subscribe({
-      next: ({ catalogo, inscripciones, profesores }) => {
+      next: ({ catalogo, inscripciones }) => {
         const cats = Array.isArray(catalogo) ? catalogo : [];
         const inscs = Array.isArray(inscripciones) ? inscripciones : [];
 
         this.catalogo.set(cats);
-        this.profesores.set(Array.isArray(profesores) ? profesores : []);
 
         const enriquecidas = inscs.map(i => ({
           ...i,
@@ -338,7 +312,7 @@ export class MisMateriasComponent implements OnInit {
   abrirModalInscribir(): void {
     this.formInscribir.reset({
       materiaId: 0, semestre: 1,
-      anio: new Date().getFullYear(), estado: 'CURSANDO', profesorId: null,
+      anio: new Date().getFullYear(), estado: 'CURSANDO',
     });
     this.mostrarModalInscribir.set(true);
   }
@@ -352,7 +326,6 @@ export class MisMateriasComponent implements OnInit {
     this.svc.inscribirMateria({
       usuarioId:  this.currentUser!.id,
       materiaId,
-      profesorId: v.profesorId ?? null,
       semestre:   Number(v.semestre),
       anio:       Number(v.anio),
       estado:     v.estado || 'CURSANDO',

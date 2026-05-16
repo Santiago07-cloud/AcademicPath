@@ -210,6 +210,114 @@
   .admin-tab  { padding: 0.45rem 0.8rem; font-size: 0.8rem; }
 }
 
+/* ── Accordion de materias en tabla de usuarios ── */
+.expand-cell {
+  width: 2.5rem;
+  text-align: center;
+}
+
+.expand-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  font-size: 0.7rem;
+  transition: transform 0.2s ease, background 0.2s, color 0.2s;
+
+  &.expanded {
+    transform: rotate(90deg);
+    background: var(--accent-dim);
+    border-color: rgba(0,200,150,0.35);
+    color: var(--accent);
+  }
+}
+
+.usuario-row:hover td {
+  background: rgba(255,255,255,0.03);
+}
+
+.usuario-row--expanded td {
+  background: rgba(0,200,150,0.04);
+  border-bottom: none;
+}
+
+.materias-row td {
+  background: rgba(0,200,150,0.03);
+  padding: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.materias-cell {
+  padding: 1rem 1.25rem 1.25rem 3.5rem !important;
+  border-left: 2px solid rgba(0,200,150,0.25);
+}
+
+.materias-loading,
+.materias-empty {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--text-2);
+  font-size: 0.85rem;
+  padding: 0.5rem 0;
+}
+
+.materias-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-2);
+  margin-bottom: 0.75rem;
+
+  i { color: var(--accent); }
+  strong { color: var(--text); }
+}
+
+.materias-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.84rem;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+
+  th {
+    text-align: left;
+    padding: 0.55rem 0.85rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-2);
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 0.6rem 0.85rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+    color: var(--text);
+    &.muted { color: var(--text-2); }
+    &.center { text-align: center; }
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: rgba(255,255,255,0.015); }
+}
+
+.spinner--sm {
+  width: 1rem;
+  height: 1rem;
+  border-width: 2px;
+}
+
 /* ── Hints ── */
 .admin-section__hint {
   font-size: .82rem;
