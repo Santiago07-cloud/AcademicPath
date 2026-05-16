@@ -5,15 +5,13 @@ import {
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { MateriaService } from '../../../core/services/materia.service';
-import { ProfesorService } from '../../../core/services/profesor.service';
 import { UsuarioService } from '../../../core/services/usuario.service';
 import { ProgresoService } from '../../../core/services/progreso.service';
-import { Materia, MateriaRequest } from '../../../core/models/materia.model';
-import { Profesor, ProfesorRequest } from '../../../core/models/profesor.model';
+import { Materia, MateriaRequest, UsuarioMateria } from '../../../core/models/materia.model';
 import { Usuario } from '../../../core/models/usuario.model';
 import { PrerrequisitoResponse } from '../../../core/models/progreso.model';
 
-type TabAdmin = 'usuarios' | 'materias' | 'profesores' | 'prerrequisitos';
+type TabAdmin = 'usuarios' | 'prerrequisitos';
 
 @Component({
   selector: 'app-admin',
@@ -25,7 +23,6 @@ type TabAdmin = 'usuarios' | 'materias' | 'profesores' | 'prerrequisitos';
 })
 export class AdminComponent implements OnInit {
   private readonly matSvc  = inject(MateriaService);
-  private readonly profSvc = inject(ProfesorService);
   private readonly usuSvc  = inject(UsuarioService);
   private readonly progSvc = inject(ProgresoService);
   private readonly fb      = inject(FormBuilder);
@@ -36,14 +33,17 @@ export class AdminComponent implements OnInit {
   readonly exito     = signal('');
 
   // ── Datos ──
-  readonly usuarios   = signal<Usuario[]>([]);
-  readonly materias   = signal<Materia[]>([]);
-  readonly profesores = signal<Profesor[]>([]);
-  readonly prereqs    = signal<PrerrequisitoResponse[]>([]);
+  readonly usuarios = signal<Usuario[]>([]);
+  readonly materias = signal<Materia[]>([]);
+  readonly prereqs  = signal<PrerrequisitoResponse[]>([]);
+
+  // ── Expansión de materias por usuario (accordion inline) ──
+  readonly expandidoId         = signal<number | null>(null);
+  readonly materiasExpandidas  = signal<UsuarioMateria[]>([]);
+  readonly cargandoMaterias    = signal(false);
 
   // ── Modals ──
   readonly modalMateria   = signal(false);
-  readonly modalProfesor  = signal(false);
   readonly modalPrereq    = signal(false);
   readonly modalConfirmar = signal(false);
 
@@ -87,8 +87,7 @@ export class AdminComponent implements OnInit {
     return m ? `${m.codigo} — ${m.nombre}` : 'Selecciona el prerrequisito...';
   }
 
-  readonly materiaEditando  = signal<Materia | null>(null);
-  readonly profesorEditando = signal<Profesor | null>(null);
+  readonly materiaEditando = signal<Materia | null>(null);
   private pendingAction: (() => void) | null = null;
 
   readonly confirmTitulo  = signal('');
@@ -102,11 +101,6 @@ export class AdminComponent implements OnInit {
     descripcion: [''],
   });
 
-  formProfesor = this.fb.nonNullable.group({
-    nombre: ['', [Validators.required, Validators.minLength(2)]],
-    correo: ['', [Validators.required, Validators.email]],
-  });
-
   formPrereq = this.fb.nonNullable.group({
     materiaId:            [0, [Validators.required, Validators.min(1)]],
     materiaPrerrequisitId: [0, [Validators.required, Validators.min(1)]],
@@ -114,19 +108,20 @@ export class AdminComponent implements OnInit {
 
   readonly tabs: { id: TabAdmin; label: string; icon: string }[] = [
     { id: 'usuarios',       label: 'Usuarios',      icon: 'bi bi-people' },
-    { id: 'materias',       label: 'Materias',       icon: 'bi bi-book' },
-    { id: 'profesores',     label: 'Profesores',     icon: 'bi bi-person-badge' },
     { id: 'prerrequisitos', label: 'Prerrequisitos', icon: 'bi bi-diagram-3' },
   ];
 
   ngOnInit(): void { this.cargarTodo(); }
 
-  setTab(tab: TabAdmin): void { this.tabActiva.set(tab); }
+  setTab(tab: TabAdmin): void {
+    this.tabActiva.set(tab);
+    this.expandidoId.set(null);
+    this.materiasExpandidas.set([]);
+  }
 
   cargarTodo(): void {
     this.cargando.set(true);
     this.usuSvc.obtenerTodos().subscribe({ next: v => this.usuarios.set(v), error: () => {} });
-    this.profSvc.obtenerTodos().subscribe({ next: v => this.profesores.set(v), error: () => {} });
     this.matSvc.obtenerMaterias().subscribe({
       next: mats => {
         this.materias.set(mats);
@@ -143,6 +138,32 @@ export class AdminComponent implements OnInit {
       },
       error: () => this.cargando.set(false),
     });
+  }
+
+  // ── Accordion: expandir/contraer materias de un usuario ──
+  toggleMaterias(u: Usuario): void {
+    if (this.expandidoId() === u.id) {
+      // ya abierto → cerrar
+      this.expandidoId.set(null);
+      this.materiasExpandidas.set([]);
+      return;
+    }
+    this.expandidoId.set(u.id);
+    this.materiasExpandidas.set([]);
+    this.cargandoMaterias.set(true);
+    this.matSvc.obtenerMisMateriasInscritas(u.id).subscribe({
+      next: mats => { this.materiasExpandidas.set(mats); this.cargandoMaterias.set(false); },
+      error: () => { this.cargandoMaterias.set(false); this.flashError('No se pudieron cargar las materias del usuario.'); },
+    });
+  }
+
+  estadoChipClass(estado: string): string {
+    switch (estado?.toLowerCase()) {
+      case 'aprobada':   return 'chip chip-success';
+      case 'reprobada':  return 'chip chip-danger';
+      case 'cursando':   return 'chip chip-info';
+      default:           return 'chip';
+    }
   }
 
   // ── Materias ──
@@ -176,34 +197,6 @@ export class AdminComponent implements OnInit {
     this.confirmar(`Eliminar "${m.nombre}"`, 'Esta acción es permanente y puede afectar inscripciones existentes.', () => {
       this.matSvc.eliminarMateria(m.id).subscribe({
         next: () => { this.flash('Materia eliminada.'); this.materias.update(l => l.filter(x => x.id !== m.id)); },
-        error: (e: Error) => this.flashError(e.message),
-      });
-    });
-  }
-
-  // ── Profesores ──
-  abrirModalProfesor(p?: Profesor): void {
-    this.profesorEditando.set(p ?? null);
-    this.formProfesor.reset({ nombre: p?.nombre ?? '', correo: p?.correo ?? '' });
-    this.modalProfesor.set(true);
-  }
-
-  guardarProfesor(): void {
-    if (this.formProfesor.invalid) return;
-    const v = this.formProfesor.getRawValue();
-    const payload: ProfesorRequest = { nombre: v.nombre.trim(), correo: v.correo.trim() };
-    const edit = this.profesorEditando();
-    const obs  = edit ? this.profSvc.actualizar(edit.id, payload) : this.profSvc.crear(payload);
-    obs.subscribe({
-      next: () => { this.modalProfesor.set(false); this.flash('Profesor guardado.'); this.profSvc.obtenerTodos().subscribe(v => this.profesores.set(v)); },
-      error: (e: Error) => this.flashError(e.message),
-    });
-  }
-
-  confirmarEliminarProfesor(p: Profesor): void {
-    this.confirmar(`Eliminar a "${p.nombre}"`, 'Las materias asignadas a este profesor quedarán sin docente.', () => {
-      this.profSvc.eliminar(p.id).subscribe({
-        next: () => { this.flash('Profesor eliminado.'); this.profesores.update(l => l.filter(x => x.id !== p.id)); },
         error: (e: Error) => this.flashError(e.message),
       });
     });

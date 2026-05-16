@@ -1,11 +1,3 @@
-export interface Profesor {
-  id: number;
-  nombre: string;
-  correo: string;
-  fechaCreacion?: string;
-}
+// Profesor eliminado del alcance del proyecto
+export {};
 
-export interface ProfesorRequest {
-  nombre: string;
-  correo: string;
-}
