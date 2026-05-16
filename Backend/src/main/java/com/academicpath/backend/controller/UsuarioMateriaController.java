@@ -57,7 +57,10 @@ public class UsuarioMateriaController {
     @GetMapping("/usuario/{usuarioId}")
     @Operation(summary = "Obtener materias de un usuario")
     public ResponseEntity<ApiResponse<List<UsuarioMateriaResponse>>> obtenerPorUsuario(@PathVariable Long usuarioId) {
-        securityUtils.validarPropietario(usuarioId);
+        // Admin puede ver materias de cualquier usuario; estudiante solo las suyas
+        if (!securityUtils.isAdmin()) {
+            securityUtils.validarPropietario(usuarioId);
+        }
         List<UsuarioMateriaResponse> usuarioMaterias = usuarioMateriaService.obtenerPorUsuario(usuarioId);
         return ResponseEntity.ok(ApiResponse.<List<UsuarioMateriaResponse>>builder()
                 .success(true)

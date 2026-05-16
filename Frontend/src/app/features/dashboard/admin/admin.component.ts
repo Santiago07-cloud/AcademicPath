@@ -1,6 +1,6 @@
 import {
   ChangeDetectionStrategy, Component, OnInit,
-  inject, signal, computed
+  inject, signal
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
@@ -12,13 +12,14 @@ import { Materia, MateriaRequest } from '../../../core/models/materia.model';
 import { Profesor, ProfesorRequest } from '../../../core/models/profesor.model';
 import { Usuario } from '../../../core/models/usuario.model';
 import { PrerrequisitoResponse } from '../../../core/models/progreso.model';
+import { AprobadasPipe, CursandoPipe } from './admin.pipes';
 
 type TabAdmin = 'usuarios' | 'materias' | 'profesores' | 'prerrequisitos';
 
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, AprobadasPipe, CursandoPipe],
   templateUrl: './admin.component.html',
   styleUrl: './admin.component.scss',
   changeDetection: ChangeDetectionStrategy.Default,
@@ -85,6 +86,40 @@ export class AdminComponent implements OnInit {
     if (!id) return 'Selecciona el prerrequisito...';
     const m = this.materias().find(x => x.id === Number(id));
     return m ? `${m.codigo} — ${m.nombre}` : 'Selecciona el prerrequisito...';
+  }
+
+  // ── Ver materias de un usuario ──
+  readonly usuarioSeleccionado   = signal<Usuario | null>(null);
+  readonly materiasDeUsuario     = signal<any[]>([]);
+  readonly cargandoMateriasUser  = signal(false);
+  readonly modalMateriasUser     = signal(false);
+
+  verMateriasDeUsuario(u: Usuario): void {
+    this.usuarioSeleccionado.set(u);
+    this.materiasDeUsuario.set([]);
+    this.cargandoMateriasUser.set(true);
+    this.modalMateriasUser.set(true);
+    this.matSvc.obtenerMisMateriasInscritas(u.id).subscribe({
+      next: v  => { this.materiasDeUsuario.set(v); this.cargandoMateriasUser.set(false); },
+      error: () => { this.cargandoMateriasUser.set(false); this.flashError('No se pudieron cargar las materias de este usuario.'); },
+    });
+  }
+
+  estadoClass(estado: string): string {
+    switch (estado) {
+      case 'APROBADO':  return 'chip--success';
+      case 'REPROBADO': return 'chip--danger';
+      case 'RETIRADO':  return 'chip--muted';
+      default:          return 'chip--info';  // CURSANDO
+    }
+  }
+
+  estadoLabel(estado: string): string {
+    const map: Record<string, string> = {
+      CURSANDO: 'Cursando', APROBADO: 'Aprobado',
+      REPROBADO: 'Reprobado', RETIRADO: 'Retirado',
+    };
+    return map[estado] ?? estado;
   }
 
   readonly materiaEditando  = signal<Materia | null>(null);

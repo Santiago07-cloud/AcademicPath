@@ -53,7 +53,7 @@
         <div class="admin-table-wrap">
           <table class="admin-table">
             <thead>
-              <tr><th>#</th><th>Nombre</th><th>Correo</th><th>Universidad</th><th>Carrera</th><th>Rol</th></tr>
+              <tr><th>#</th><th>Nombre</th><th>Correo</th><th>Universidad</th><th>Carrera</th><th>Rol</th><th></th></tr>
             </thead>
             <tbody>
               @for (u of usuarios(); track u.id) {
@@ -65,6 +65,11 @@
                   <td class="muted">{{ u.carrera || '—' }}</td>
                   <td>
                     <span class="chip" [class.chip-info]="u.rol === 'ADMIN'">{{ rolLabel(u.rol) }}</span>
+                  </td>
+                  <td class="actions-cell">
+                    <button class="btn-icon-sm btn-icon-accent" title="Ver materias" (click)="verMateriasDeUsuario(u)">
+                      <i class="bi bi-book"></i>
+                    </button>
                   </td>
                 </tr>
               }
@@ -322,6 +327,86 @@
           </button>
         </div>
       </form>
+    </div>
+  </div>
+}
+
+<!-- ═══════════ MODAL: Materias del usuario ═══════════ -->
+@if (modalMateriasUser()) {
+  <div class="modal-overlay" (click)="modalMateriasUser.set(false)">
+    <div class="modal-card modal-card--lg" (click)="$event.stopPropagation()">
+
+      <div class="modal-header">
+        <div class="user-modal-title">
+          <div class="user-avatar-sm">
+            {{ usuarioSeleccionado()?.nombres?.charAt(0) }}{{ usuarioSeleccionado()?.apellidos?.charAt(0) }}
+          </div>
+          <div>
+            <h3>{{ usuarioSeleccionado()?.nombres }} {{ usuarioSeleccionado()?.apellidos }}</h3>
+            <p class="modal-subtitle">{{ usuarioSeleccionado()?.correo }} · {{ usuarioSeleccionado()?.carrera || 'Sin carrera' }}</p>
+          </div>
+        </div>
+        <button class="btn-icon-sm" (click)="modalMateriasUser.set(false)"><i class="bi bi-x-lg"></i></button>
+      </div>
+
+      @if (cargandoMateriasUser()) {
+        <div class="admin-loading">
+          <div class="spinner"></div> Cargando materias...
+        </div>
+      } @else if (materiasDeUsuario().length === 0) {
+        <div class="admin-empty">
+          <i class="bi bi-book"></i>
+          <p>Este usuario no tiene materias inscritas aún.</p>
+        </div>
+      } @else {
+        <div class="user-materias-stats">
+          <div class="stat-pill">
+            <i class="bi bi-journals"></i>
+            <span>{{ materiasDeUsuario().length }} materia{{ materiasDeUsuario().length !== 1 ? 's' : '' }}</span>
+          </div>
+          <div class="stat-pill stat-pill--success">
+            <i class="bi bi-check-circle"></i>
+            <span>{{ materiasDeUsuario() | aprobadas }} aprobada{{ (materiasDeUsuario() | aprobadas) !== 1 ? 's' : '' }}</span>
+          </div>
+          <div class="stat-pill stat-pill--warn">
+            <i class="bi bi-clock"></i>
+            <span>{{ materiasDeUsuario() | cursando }} cursando</span>
+          </div>
+        </div>
+
+        <div class="materias-user-grid">
+          @for (um of materiasDeUsuario(); track um.id) {
+            <div class="materia-user-card" [class.materia-user-card--aprobado]="um.estado === 'APROBADO'" [class.materia-user-card--reprobado]="um.estado === 'REPROBADO'">
+              <div class="materia-user-card__head">
+                <span class="chip chip--code">{{ um.materia?.codigo || um.materiaNombre }}</span>
+                <span class="chip" [class]="estadoClass(um.estado)">{{ estadoLabel(um.estado) }}</span>
+              </div>
+              <p class="materia-user-card__nombre">{{ um.materia?.nombre || um.materiaNombre }}</p>
+              <div class="materia-user-card__meta">
+                <span><i class="bi bi-calendar3"></i> {{ um.semestre }}º sem. {{ um.anio }}</span>
+                @if (um.profesorNombre) {
+                  <span><i class="bi bi-person"></i> {{ um.profesorNombre }}</span>
+                }
+                <span><i class="bi bi-award"></i>
+                  @if (um.estado === 'APROBADO') {
+                    <strong style="color:var(--accent)">{{ um.notaFinal | number:'1.1-1' }}</strong>
+                  } @else if (um.notaFinal > 0) {
+                    {{ um.notaFinal | number:'1.1-1' }} parcial
+                  } @else {
+                    Sin nota
+                  }
+                </span>
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="modalMateriasUser.set(false)">
+          <i class="bi bi-x"></i> Cerrar
+        </button>
+      </div>
     </div>
   </div>
 }
