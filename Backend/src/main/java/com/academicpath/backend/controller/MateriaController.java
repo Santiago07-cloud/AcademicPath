@@ -26,8 +26,7 @@ public class MateriaController {
     private MateriaService materiaService;
 
     @PostMapping
-    @Operation(summary = "Crear nueva materia (solo ADMIN)")
-    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Crear nueva materia")
     public ResponseEntity<ApiResponse<MateriaResponse>> crear(@Valid @RequestBody MateriaRequest request) {
         MateriaResponse materia = materiaService.crear(request);
         return ResponseEntity.status(HttpStatus.CREATED)
