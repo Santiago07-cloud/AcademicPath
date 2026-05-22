@@ -82,7 +82,10 @@
               </strong>
               <p>{{ error() }}</p>
               @if (errorType() === 'credentials' && intentosFallidos() >= 2) {
-                <p class="feedback-hint">No recuerdas tu contrasena? <a routerLink="/register">Crea una cuenta nueva</a></p>
+                <p class="feedback-hint">
+                  ¿No recuerdas tu contraseña?
+                  <a routerLink="/forgot-password">Recupérala aquí</a>
+                </p>
               }
             </div>
           </div>
@@ -103,7 +106,11 @@
         </label>
 
         <label class="field">
-          <span class="field-label">Contrasena</span>
+          <span class="field-label">
+            Contrasena
+            <!-- Enlace "¿Olvidaste tu contraseña?" junto al label -->
+            <a routerLink="/forgot-password" class="forgot-link">¿Olvidaste tu contraseña?</a>
+          </span>
           <div class="field-input-wrap">
             <i class="bi bi-lock"></i>
             <input class="field-input"

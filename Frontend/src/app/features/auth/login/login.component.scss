@@ -303,6 +303,24 @@ form {
 
 .auth-footer-link a:hover { text-decoration: underline; }
 
+/* Enlace olvido contraseña — en el label del campo */
+.field-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.forgot-link {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-2);
+  letter-spacing: normal;
+  text-transform: none;
+  transition: color 0.2s;
+}
+
+.forgot-link:hover { color: var(--accent); text-decoration: underline; }
+
 /* ── Responsive ── */
 @media (max-width: 1024px) {
   .auth-shell {

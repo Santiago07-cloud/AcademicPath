@@ -11,11 +11,16 @@
   @if (usuario) {
     <div class="perfil-info">
       <div class="perfil-avatar">{{ usuario.nombres[0] }}{{ usuario.apellidos[0] }}</div>
-      <div>
+
+      <!-- Meta: centrado verticalmente, alineado a la izquierda -->
+      <div class="perfil-info__meta">
         <strong>{{ usuario.nombres }} {{ usuario.apellidos }}</strong>
-        <span>{{ usuario.correo }}</span>
+        <span class="perfil-info__correo">{{ usuario.correo }}</span>
         @if (usuario.rol) {
-          <span class="chip chip-info" style="margin-top:.35rem;display:inline-flex">{{ usuario.rol }}</span>
+          <span class="perfil-rol-badge">
+            <i class="bi" [class.bi-shield-fill]="usuario.rol === 'ADMIN'" [class.bi-mortarboard-fill]="usuario.rol !== 'ADMIN'"></i>
+            {{ usuario.rol === 'ADMIN' ? 'Administrador' : 'Estudiante' }}
+          </span>
         }
       </div>
     </div>

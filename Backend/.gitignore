@@ -30,10 +30,13 @@ Thumbs.db
 *.jar
 *.log
 
-# Application
+# Application — credenciales y configs locales NUNCA al repo
 *.properties.local
+application-local.properties
+application-prod.properties
 .env
 .env.local
+.env.*
 
 # Legacy/deprecated (fuera del source, no subir a git)
 _deprecated/

@@ -3,30 +3,26 @@ import {
   inject, signal
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { MateriaService } from '../../../core/services/materia.service';
 import { UsuarioService } from '../../../core/services/usuario.service';
-import { ProgresoService } from '../../../core/services/progreso.service';
-import { Materia, MateriaRequest, UsuarioMateria } from '../../../core/models/materia.model';
+import { UsuarioMateria } from '../../../core/models/materia.model';
 import { Usuario } from '../../../core/models/usuario.model';
-import { PrerrequisitoResponse } from '../../../core/models/progreso.model';
 import { AprobadasPipe, CursandoPipe } from './admin.pipes';
 
-type TabAdmin = 'usuarios' | 'materias' | 'profesores' | 'prerrequisitos';
+// Solo la pestaña de usuarios permanece
+type TabAdmin = 'usuarios';
 
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, AprobadasPipe, CursandoPipe],
+  imports: [CommonModule, AprobadasPipe, CursandoPipe],
   templateUrl: './admin.component.html',
   styleUrl: './admin.component.scss',
   changeDetection: ChangeDetectionStrategy.Default,
 })
 export class AdminComponent implements OnInit {
-  private readonly matSvc  = inject(MateriaService);
-  private readonly usuSvc  = inject(UsuarioService);
-  private readonly progSvc = inject(ProgresoService);
-  private readonly fb      = inject(FormBuilder);
+  private readonly matSvc = inject(MateriaService);
+  private readonly usuSvc = inject(UsuarioService);
 
   readonly tabActiva = signal<TabAdmin>('usuarios');
   readonly cargando  = signal(false);
@@ -35,65 +31,57 @@ export class AdminComponent implements OnInit {
 
   // ── Datos ──
   readonly usuarios = signal<Usuario[]>([]);
-  readonly materias = signal<Materia[]>([]);
-  readonly prereqs  = signal<PrerrequisitoResponse[]>([]);
 
-  // ── Expansión de materias por usuario (accordion inline) ──
-  readonly expandidoId         = signal<number | null>(null);
-  readonly materiasExpandidas  = signal<UsuarioMateria[]>([]);
-  readonly cargandoMaterias    = signal(false);
+  // ── Expansión accordion ──
+  readonly expandidoId        = signal<number | null>(null);
+  readonly materiasExpandidas = signal<UsuarioMateria[]>([]);
+  readonly cargandoMaterias   = signal(false);
 
-  // ── Modals ──
-  readonly modalMateria   = signal(false);
-  readonly modalPrereq    = signal(false);
+  // ── Modal materias de un usuario ──
+  readonly usuarioSeleccionado  = signal<Usuario | null>(null);
+  readonly materiasDeUsuario    = signal<UsuarioMateria[]>([]);
+  readonly cargandoMateriasUser = signal(false);
+  readonly modalMateriasUser    = signal(false);
+
+  // ── Modal confirmación ──
   readonly modalConfirmar = signal(false);
+  readonly confirmTitulo  = signal('');
+  readonly confirmMensaje = signal('');
+  private pendingAction: (() => void) | null = null;
 
-  // Dropdowns para el modal de prerrequisitos
-  prereqMateriaAOpen = signal(false);
-  prereqMateriaBOpen = signal(false);
+  ngOnInit(): void { this.cargarTodo(); }
 
-  togglePrereqMateriaA(): void {
-    this.prereqMateriaBOpen.set(false);
-    this.prereqMateriaAOpen.update(o => !o);
+  cargarTodo(): void {
+    this.cargando.set(true);
+    this.usuSvc.obtenerTodos().subscribe({
+      next: v  => { this.usuarios.set(v); this.cargando.set(false); },
+      error: () => this.cargando.set(false),
+    });
   }
 
-  togglePrereqMateriaB(): void {
-    this.prereqMateriaAOpen.set(false);
-    this.prereqMateriaBOpen.update(o => !o);
+  setTab(tab: TabAdmin): void {
+    this.tabActiva.set(tab);
+    this.expandidoId.set(null);
+    this.materiasExpandidas.set([]);
   }
 
-  seleccionarMateriaA(id: number): void {
-    this.formPrereq.controls.materiaId.setValue(id);
-    this.formPrereq.controls.materiaId.markAsTouched();
-    this.prereqMateriaAOpen.set(false);
+  // ── Accordion ──
+  toggleMaterias(u: Usuario): void {
+    if (this.expandidoId() === u.id) {
+      this.expandidoId.set(null);
+      this.materiasExpandidas.set([]);
+      return;
+    }
+    this.expandidoId.set(u.id);
+    this.materiasExpandidas.set([]);
+    this.cargandoMaterias.set(true);
+    this.matSvc.obtenerMisMateriasInscritas(u.id).subscribe({
+      next: mats => { this.materiasExpandidas.set(mats); this.cargandoMaterias.set(false); },
+      error: ()  => { this.cargandoMaterias.set(false); this.flashError('No se pudieron cargar las materias del usuario.'); },
+    });
   }
 
-  seleccionarMateriaB(id: number): void {
-    this.formPrereq.controls.materiaPrerrequisitId.setValue(id);
-    this.formPrereq.controls.materiaPrerrequisitId.markAsTouched();
-    this.prereqMateriaBOpen.set(false);
-  }
-
-  labelMateriaA(): string {
-    const id = this.formPrereq.controls.materiaId.value;
-    if (!id) return 'Selecciona la materia...';
-    const m = this.materias().find(x => x.id === Number(id));
-    return m ? `${m.codigo} — ${m.nombre}` : 'Selecciona la materia...';
-  }
-
-  labelMateriaB(): string {
-    const id = this.formPrereq.controls.materiaPrerrequisitId.value;
-    if (!id) return 'Selecciona el prerrequisito...';
-    const m = this.materias().find(x => x.id === Number(id));
-    return m ? `${m.codigo} — ${m.nombre}` : 'Selecciona el prerrequisito...';
-  }
-
-  // ── Ver materias de un usuario ──
-  readonly usuarioSeleccionado   = signal<Usuario | null>(null);
-  readonly materiasDeUsuario     = signal<any[]>([]);
-  readonly cargandoMateriasUser  = signal(false);
-  readonly modalMateriasUser     = signal(false);
-
+  // ── Modal materias de usuario ──
   verMateriasDeUsuario(u: Usuario): void {
     this.usuarioSeleccionado.set(u);
     this.materiasDeUsuario.set([]);
@@ -105,176 +93,7 @@ export class AdminComponent implements OnInit {
     });
   }
 
-  estadoClass(estado: string): string {
-    switch (estado) {
-      case 'APROBADO':  return 'chip--success';
-      case 'REPROBADO': return 'chip--danger';
-      case 'RETIRADO':  return 'chip--muted';
-      default:          return 'chip--info';  // CURSANDO
-    }
-  }
-
-  estadoLabel(estado: string): string {
-    const map: Record<string, string> = {
-      CURSANDO: 'Cursando', APROBADO: 'Aprobado',
-      REPROBADO: 'Reprobado', RETIRADO: 'Retirado',
-    };
-    return map[estado] ?? estado;
-  }
-  readonly materiaEditando = signal<Materia | null>(null);
-  private pendingAction: (() => void) | null = null;
-
-  readonly confirmTitulo  = signal('');
-  readonly confirmMensaje = signal('');
-
-  // ── Formularios ──
-  formMateria = this.fb.nonNullable.group({
-    codigo:      ['', Validators.required],
-    nombre:      ['', Validators.required],
-    creditos:    [3, [Validators.required, Validators.min(1), Validators.max(20)]],
-    descripcion: [''],
-  });
-
-  formPrereq = this.fb.nonNullable.group({
-    materiaId:            [0, [Validators.required, Validators.min(1)]],
-    materiaPrerrequisitId: [0, [Validators.required, Validators.min(1)]],
-  });
-
-  readonly tabs: { id: TabAdmin; label: string; icon: string }[] = [
-    { id: 'usuarios',       label: 'Usuarios',       icon: 'bi bi-people' },
-    { id: 'materias',       label: 'Materias',       icon: 'bi bi-journals' },
-    { id: 'prerrequisitos', label: 'Prerrequisitos', icon: 'bi bi-diagram-2' },
-  ];
-
-  ngOnInit(): void { this.cargarTodo(); }
-
-  setTab(tab: TabAdmin): void {
-    this.tabActiva.set(tab);
-    this.expandidoId.set(null);
-    this.materiasExpandidas.set([]);
-  }
-
-  cargarTodo(): void {
-    this.cargando.set(true);
-    this.usuSvc.obtenerTodos().subscribe({ next: v => this.usuarios.set(v), error: () => {} });
-    this.matSvc.obtenerMaterias().subscribe({
-      next: mats => {
-        this.materias.set(mats);
-        // Cargar todos los prerrequisitos de cada materia
-        const all: PrerrequisitoResponse[] = [];
-        if (!mats.length) { this.prereqs.set([]); this.cargando.set(false); return; }
-        let pending = mats.length;
-        mats.forEach(m => {
-          this.progSvc.obtenerPrerrequisitosMateria(m.id).subscribe({
-            next: ps => { all.push(...ps); if (!--pending) { this.prereqs.set(all); this.cargando.set(false); } },
-            error: ()  => { if (!--pending) { this.prereqs.set(all); this.cargando.set(false); } },
-          });
-        });
-      },
-      error: () => this.cargando.set(false),
-    });
-  }
-
-  // ── Accordion: expandir/contraer materias de un usuario ──
-  toggleMaterias(u: Usuario): void {
-    if (this.expandidoId() === u.id) {
-      // ya abierto → cerrar
-      this.expandidoId.set(null);
-      this.materiasExpandidas.set([]);
-      return;
-    }
-    this.expandidoId.set(u.id);
-    this.materiasExpandidas.set([]);
-    this.cargandoMaterias.set(true);
-    this.matSvc.obtenerMisMateriasInscritas(u.id).subscribe({
-      next: mats => { this.materiasExpandidas.set(mats); this.cargandoMaterias.set(false); },
-      error: () => { this.cargandoMaterias.set(false); this.flashError('No se pudieron cargar las materias del usuario.'); },
-    });
-  }
-
-  estadoChipClass(estado: string): string {
-    switch (estado?.toLowerCase()) {
-      case 'aprobada':   return 'chip chip-success';
-      case 'reprobada':  return 'chip chip-danger';
-      case 'cursando':   return 'chip chip-info';
-      default:           return 'chip';
-    }
-  }
-
-  // ── Materias ──
-  abrirModalMateria(m?: Materia): void {
-    this.materiaEditando.set(m ?? null);
-    this.formMateria.reset({
-      codigo: m?.codigo ?? '', nombre: m?.nombre ?? '',
-      creditos: m?.creditos ?? 3, descripcion: m?.descripcion ?? '',
-    });
-    this.modalMateria.set(true);
-  }
-
-  guardarMateria(): void {
-    if (this.formMateria.invalid) return;
-    const v = this.formMateria.getRawValue();
-    const payload: MateriaRequest = {
-      codigo: v.codigo.toUpperCase().trim(),
-      nombre: v.nombre.trim(),
-      creditos: Number(v.creditos),
-      descripcion: v.descripcion.trim() || undefined,
-    };
-    const edit = this.materiaEditando();
-    const obs  = edit ? this.matSvc.actualizarMateria(edit.id, payload) : this.matSvc.crearMateria(payload);
-    obs.subscribe({
-      next: () => { this.modalMateria.set(false); this.flash('Materia guardada.'); this.matSvc.obtenerMaterias().subscribe(v => this.materias.set(v)); },
-      error: (e: Error) => this.flashError(e.message),
-    });
-  }
-
-  confirmarEliminarMateria(m: Materia): void {
-    this.confirmar(`Eliminar "${m.nombre}"`, 'Esta acción es permanente y puede afectar inscripciones existentes.', () => {
-      this.matSvc.eliminarMateria(m.id).subscribe({
-        next: () => { this.flash('Materia eliminada.'); this.materias.update(l => l.filter(x => x.id !== m.id)); },
-        error: (e: Error) => this.flashError(e.message),
-      });
-    });
-  }
-
-  // ── Prerrequisitos ──
-  abrirModalPrereq(): void {
-    this.formPrereq.reset({ materiaId: 0, materiaPrerrequisitId: 0 });
-    this.prereqMateriaAOpen.set(false);
-    this.prereqMateriaBOpen.set(false);
-    this.modalPrereq.set(true);
-  }
-
-  guardarPrereq(): void {
-    if (this.formPrereq.invalid) return;
-    const v = this.formPrereq.getRawValue();
-    if (Number(v.materiaId) === Number(v.materiaPrerrequisitId)) {
-      this.flashError('La materia y el prerrequisito no pueden ser la misma.');
-      return;
-    }
-    this.progSvc.crearPrerrequisito({
-      materiaId: Number(v.materiaId),
-      materiaPrerrequisitId: Number(v.materiaPrerrequisitId),
-    }).subscribe({
-      next: pr => { this.modalPrereq.set(false); this.flash('Prerrequisito creado.'); this.prereqs.update(l => [...l, pr]); },
-      error: (e: Error) => this.flashError(e.message),
-    });
-  }
-
-  confirmarEliminarPrereq(pr: PrerrequisitoResponse): void {
-    this.confirmar(
-      'Eliminar prerrequisito',
-      `¿Eliminar "${pr.materiaPrerrequisitNombre}" como requisito de "${pr.materiaNombre}"?`,
-      () => {
-        this.progSvc.eliminarPrerrequisito(pr.id).subscribe({
-          next: () => { this.flash('Prerrequisito eliminado.'); this.prereqs.update(l => l.filter(x => x.id !== pr.id)); },
-          error: (e: Error) => this.flashError(e.message),
-        });
-      }
-    );
-  }
-
-  // ── Confirm helper ──
+  // ── Confirmación ──
   confirmar(titulo: string, mensaje: string, accion: () => void): void {
     this.confirmTitulo.set(titulo);
     this.confirmMensaje.set(mensaje);
@@ -288,8 +107,35 @@ export class AdminComponent implements OnInit {
     this.modalConfirmar.set(false);
   }
 
+  // ── Helpers de UI ──
   rolLabel(rol: string | undefined): string {
     return rol === 'ADMIN' ? 'Admin' : 'Estudiante';
+  }
+
+  estadoChipClass(estado: string): string {
+    switch (estado?.toLowerCase()) {
+      case 'aprobada':   return 'chip chip-success';
+      case 'reprobada':  return 'chip chip-danger';
+      case 'cursando':   return 'chip chip-info';
+      default:           return 'chip';
+    }
+  }
+
+  estadoClass(estado: string): string {
+    switch (estado) {
+      case 'APROBADO':  return 'chip--success';
+      case 'REPROBADO': return 'chip--danger';
+      case 'RETIRADO':  return 'chip--muted';
+      default:          return 'chip--info';
+    }
+  }
+
+  estadoLabel(estado: string): string {
+    const map: Record<string, string> = {
+      CURSANDO: 'Cursando', APROBADO: 'Aprobado',
+      REPROBADO: 'Reprobado', RETIRADO: 'Retirado',
+    };
+    return map[estado] ?? estado;
   }
 
   private flash(msg: string): void {

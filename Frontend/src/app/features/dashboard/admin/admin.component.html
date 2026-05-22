@@ -4,7 +4,7 @@
     <div>
       <p class="section-kicker">Administración</p>
       <h2 class="section-heading">Panel de admin</h2>
-      <p class="section-copy">Gestión global de usuarios, materias y prerrequisitos.</p>
+      <p class="section-copy">Gestión global de usuarios y sus materias inscritas.</p>
     </div>
     <button class="btn btn-secondary btn-sm" (click)="cargarTodo()" title="Recargar datos">
       <i class="bi bi-arrow-clockwise"></i> Actualizar
@@ -24,222 +24,108 @@
     </div>
   }
 
-  <!-- Tabs -->
-  <div class="admin-tabs">
-    @for (tab of tabs; track tab.id) {
-      <button type="button" class="admin-tab"
-        [class.admin-tab--active]="tabActiva() === tab.id"
-        (click)="setTab(tab.id)">
-        <i [class]="tab.icon"></i> {{ tab.label }}
-        <span class="tab-badge">
-          @if (tab.id === 'usuarios') { {{ usuarios().length }} }
-        </span>
-      </button>
+  <!-- ── USUARIOS ── -->
+  <div class="admin-section">
+    <p class="admin-section__hint">
+      Vista de solo lectura. Expande un usuario para ver sus materias inscritas.
+      <span class="chip" style="margin-left:.5rem">{{ usuarios().length }} usuarios</span>
+    </p>
+
+    @if (cargando()) {
+      <div class="admin-loading"><div class="spinner"></div> Cargando...</div>
+    } @else if (usuarios().length === 0) {
+      <div class="admin-empty"><i class="bi bi-people"></i><p>Sin usuarios cargados</p></div>
+    } @else {
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th style="width:2.5rem"></th>
+              <th>#</th>
+              <th>Nombre</th>
+              <th>Correo</th>
+              <th>Universidad</th>
+              <th>Carrera</th>
+              <th>Rol</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (u of usuarios(); track u.id) {
+              <!-- Fila del usuario -->
+              <tr class="usuario-row" [class.usuario-row--expanded]="expandidoId() === u.id"
+                  (click)="toggleMaterias(u)" style="cursor:pointer">
+                <td class="expand-cell">
+                  <span class="expand-icon" [class.expanded]="expandidoId() === u.id">
+                    <i class="bi bi-chevron-right"></i>
+                  </span>
+                </td>
+                <td class="muted">{{ u.id }}</td>
+                <td><strong>{{ u.nombres }} {{ u.apellidos }}</strong></td>
+                <td class="muted">{{ u.correo }}</td>
+                <td class="muted">{{ u.universidad || '—' }}</td>
+                <td class="muted">{{ u.carrera || '—' }}</td>
+                <td>
+                  <span class="chip" [class.chip-info]="u.rol === 'ADMIN'">{{ rolLabel(u.rol) }}</span>
+                </td>
+                <td class="actions-cell">
+                  <button class="btn-icon-sm btn-icon-accent" title="Ver materias"
+                    (click)="$event.stopPropagation(); verMateriasDeUsuario(u)">
+                    <i class="bi bi-book"></i>
+                  </button>
+                </td>
+              </tr>
+
+              <!-- Fila expandida: materias del usuario -->
+              @if (expandidoId() === u.id) {
+                <tr class="materias-row">
+                  <td colspan="8" class="materias-cell">
+                    @if (cargandoMaterias()) {
+                      <div class="materias-loading">
+                        <div class="spinner spinner--sm"></div> Cargando materias...
+                      </div>
+                    } @else if (materiasExpandidas().length === 0) {
+                      <div class="materias-empty">
+                        <i class="bi bi-book"></i> Este usuario no tiene materias inscritas.
+                      </div>
+                    } @else {
+                      <div class="materias-header">
+                        <i class="bi bi-journal-text"></i>
+                        <strong>{{ u.nombres }} {{ u.apellidos }}</strong>
+                        <span class="chip" style="margin-left:.5rem">{{ materiasExpandidas().length }} materias</span>
+                      </div>
+                      <table class="materias-table">
+                        <thead>
+                          <tr>
+                            <th>Materia</th>
+                            <th>Semestre / Año</th>
+                            <th>Estado</th>
+                            <th class="center">Nota final</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          @for (um of materiasExpandidas(); track um.id) {
+                            <tr>
+                              <td><strong>{{ um.materia?.nombre ?? um.materiaNombre ?? 'Materia #' + um.materiaId }}</strong></td>
+                              <td class="muted">{{ um.semestre }}S · {{ um.anio }}</td>
+                              <td><span [class]="estadoChipClass(um.estado)">{{ um.estado }}</span></td>
+                              <td class="center muted">{{ um.notaFinal != null ? um.notaFinal : '—' }}</td>
+                            </tr>
+                          }
+                        </tbody>
+                      </table>
+                    }
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </div>
     }
   </div>
 
-  <!-- ── USUARIOS (con accordion de materias) ── -->
-  @if (tabActiva() === 'usuarios') {
-    <div class="admin-section">
-      <p class="admin-section__hint">Vista de solo lectura. Expande un usuario para ver sus materias inscritas.</p>
-      @if (cargando()) {
-        <div class="admin-loading"><div class="spinner"></div> Cargando...</div>
-      } @else if (usuarios().length === 0) {
-        <div class="admin-empty"><i class="bi bi-people"></i><p>Sin usuarios cargados</p></div>
-      } @else {
-        <div class="admin-table-wrap">
-          <table class="admin-table">
-            <thead>
-              <tr>
-                <th style="width:2.5rem"></th>
-                <th>#</th>
-                <th>Nombre</th>
-                <th>Correo</th>
-                <th>Universidad</th>
-                <th>Carrera</th>
-                <th>Rol</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (u of usuarios(); track u.id) {
-                <!-- Fila del usuario -->
-                <tr class="usuario-row" [class.usuario-row--expanded]="expandidoId() === u.id"
-                    (click)="toggleMaterias(u)" style="cursor:pointer">
-                  <td class="expand-cell">
-                    <span class="expand-icon" [class.expanded]="expandidoId() === u.id">
-                      <i class="bi bi-chevron-right"></i>
-                    </span>
-                  </td>
-                  <td class="muted">{{ u.id }}</td>
-                  <td><strong>{{ u.nombres }} {{ u.apellidos }}</strong></td>
-                  <td class="muted">{{ u.correo }}</td>
-                  <td class="muted">{{ u.universidad || '—' }}</td>
-                  <td class="muted">{{ u.carrera || '—' }}</td>
-                  <td>
-                    <span class="chip" [class.chip-info]="u.rol === 'ADMIN'">{{ rolLabel(u.rol) }}</span>
-                  </td>
-                  <td class="actions-cell">
-                    <button class="btn-icon-sm btn-icon-accent" title="Ver materias" (click)="verMateriasDeUsuario(u)">
-                      <i class="bi bi-book"></i>
-                    </button>
-                  </td>
-                </tr>
-
-                <!-- Fila expandida: materias del usuario -->
-                @if (expandidoId() === u.id) {
-                  <tr class="materias-row">
-                    <td colspan="7" class="materias-cell">
-                      @if (cargandoMaterias()) {
-                        <div class="materias-loading">
-                          <div class="spinner spinner--sm"></div> Cargando materias...
-                        </div>
-                      } @else if (materiasExpandidas().length === 0) {
-                        <div class="materias-empty">
-                          <i class="bi bi-book"></i> Este usuario no tiene materias inscritas.
-                        </div>
-                      } @else {
-                        <div class="materias-header">
-                          <i class="bi bi-journal-text"></i>
-                          <strong>{{ u.nombres }} {{ u.apellidos }}</strong>
-                          <span class="chip" style="margin-left:.5rem">{{ materiasExpandidas().length }} materias</span>
-                        </div>
-                        <table class="materias-table">
-                          <thead>
-                            <tr>
-                              <th>Materia</th>
-                              <th>Semestre / Año</th>
-                              <th>Estado</th>
-                              <th class="center">Nota final</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            @for (um of materiasExpandidas(); track um.id) {
-                              <tr>
-                                <td><strong>{{ um.materia?.nombre ?? um.materiaNombre ?? 'Materia #' + um.materiaId }}</strong></td>
-                                <td class="muted">{{ um.semestre }}S · {{ um.anio }}</td>
-                                <td><span [class]="estadoChipClass(um.estado)">{{ um.estado }}</span></td>
-                                <td class="center muted">{{ um.notaFinal != null ? um.notaFinal : '—' }}</td>
-                              </tr>
-                            }
-                          </tbody>
-                        </table>
-                      }
-                    </td>
-                  </tr>
-                }
-              }
-            </tbody>
-          </table>
-        </div>
-      }
-    </div>
-  }
-
 </section>
-
-<!-- ═══════════ MODAL: Materia ═══════════ -->
-@if (modalMateria()) {
-  <div class="modal-overlay" (click)="modalMateria.set(false)">
-    <div class="modal-card" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h3>{{ materiaEditando() ? 'Editar materia' : 'Nueva materia' }}</h3>
-        <button class="btn-icon-sm" (click)="modalMateria.set(false)"><i class="bi bi-x-lg"></i></button>
-      </div>
-      <form [formGroup]="formMateria" (ngSubmit)="guardarMateria()">
-        <div class="field-grid">
-          <label class="field">
-            <span class="field-label">Código</span>
-            <input class="field-input" type="text" formControlName="codigo"
-              placeholder="MAT101" style="text-transform:uppercase"/>
-          </label>
-          <label class="field">
-            <span class="field-label">Créditos</span>
-            <input class="field-input" type="number" formControlName="creditos" min="1" max="20"/>
-          </label>
-        </div>
-        <label class="field">
-          <span class="field-label">Nombre</span>
-          <input class="field-input" type="text" formControlName="nombre" placeholder="Cálculo Diferencial"/>
-        </label>
-        <label class="field">
-          <span class="field-label">Descripción <span class="optional-tag">(opcional)</span></span>
-          <input class="field-input" type="text" formControlName="descripcion" placeholder="Breve descripción"/>
-        </label>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="modalMateria.set(false)">Cancelar</button>
-          <button type="submit" class="btn btn-primary" [disabled]="formMateria.invalid">
-            <i class="bi bi-check-lg"></i> Guardar
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-}
-
-<!-- ═══════════ MODAL: Prerrequisito ═══════════ -->
-@if (modalPrereq()) {
-  <div class="modal-overlay" (click)="modalPrereq.set(false)">
-    <div class="modal-card" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <h3>Nuevo prerrequisito</h3>
-        <button class="btn-icon-sm" (click)="modalPrereq.set(false)"><i class="bi bi-x-lg"></i></button>
-      </div>
-      <p class="modal-hint">
-        <i class="bi bi-info-circle"></i>
-        Define que para cursar <strong>Materia A</strong> se debe haber aprobado <strong>Materia B</strong>.
-      </p>
-      <form [formGroup]="formPrereq" (ngSubmit)="guardarPrereq()">
-        <label class="field">
-          <span class="field-label">Materia que requiere prerrequisito</span>
-          <input type="hidden" formControlName="materiaId"/>
-          <div class="select-shell" (click)="$event.stopPropagation()">
-            <button type="button" class="select-trigger" (click)="togglePrereqMateriaA()">
-              <span [style.color]="!formPrereq.controls.materiaId.value ? 'var(--text-3)' : 'var(--text)'">{{ labelMateriaA() }}</span>
-              <i class="bi bi-chevron-down"></i>
-            </button>
-            @if (prereqMateriaAOpen()) {
-              <div class="select-panel">
-                @for (m of materias(); track m.id) {
-                  <button type="button" class="select-option" (click)="seleccionarMateriaA(m.id)">
-                    <span>{{ m.codigo }}</span>
-                    <span class="select-option__name">{{ m.nombre }}</span>
-                  </button>
-                }
-              </div>
-            }
-          </div>
-        </label>
-        <label class="field">
-          <span class="field-label">Debe haber aprobado antes</span>
-          <input type="hidden" formControlName="materiaPrerrequisitId"/>
-          <div class="select-shell" (click)="$event.stopPropagation()">
-            <button type="button" class="select-trigger" (click)="togglePrereqMateriaB()">
-              <span [style.color]="!formPrereq.controls.materiaPrerrequisitId.value ? 'var(--text-3)' : 'var(--text)'">{{ labelMateriaB() }}</span>
-              <i class="bi bi-chevron-down"></i>
-            </button>
-            @if (prereqMateriaBOpen()) {
-              <div class="select-panel">
-                @for (m of materias(); track m.id) {
-                  <button type="button" class="select-option" (click)="seleccionarMateriaB(m.id)">
-                    <span>{{ m.codigo }}</span>
-                    <span class="select-option__name">{{ m.nombre }}</span>
-                  </button>
-                }
-              </div>
-            }
-          </div>
-        </label>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="modalPrereq.set(false)">Cancelar</button>
-          <button type="submit" class="btn btn-primary" [disabled]="formPrereq.invalid">
-            <i class="bi bi-diagram-3"></i> Crear relación
-          </button>
-        </div>
-      </form>
-    </div>
-  </div>
-}
 
 <!-- ═══════════ MODAL: Materias del usuario ═══════════ -->
 @if (modalMateriasUser()) {
@@ -253,7 +139,9 @@
           </div>
           <div>
             <h3>{{ usuarioSeleccionado()?.nombres }} {{ usuarioSeleccionado()?.apellidos }}</h3>
-            <p class="modal-subtitle">{{ usuarioSeleccionado()?.correo }} · {{ usuarioSeleccionado()?.carrera || 'Sin carrera' }}</p>
+            <p class="modal-subtitle">
+              {{ usuarioSeleccionado()?.correo }} · {{ usuarioSeleccionado()?.carrera || 'Sin carrera' }}
+            </p>
           </div>
         </div>
         <button class="btn-icon-sm" (click)="modalMateriasUser.set(false)"><i class="bi bi-x-lg"></i></button>
@@ -286,7 +174,9 @@
 
         <div class="materias-user-grid">
           @for (um of materiasDeUsuario(); track um.id) {
-            <div class="materia-user-card" [class.materia-user-card--aprobado]="um.estado === 'APROBADO'" [class.materia-user-card--reprobado]="um.estado === 'REPROBADO'">
+            <div class="materia-user-card"
+              [class.materia-user-card--aprobado]="um.estado === 'APROBADO'"
+              [class.materia-user-card--reprobado]="um.estado === 'REPROBADO'">
               <div class="materia-user-card__head">
                 <span class="chip chip--code">{{ um.materia?.codigo || um.materiaNombre }}</span>
                 <span class="chip" [class]="estadoClass(um.estado)">{{ estadoLabel(um.estado) }}</span>
@@ -297,11 +187,10 @@
                 @if (um.profesorNombre) {
                   <span><i class="bi bi-person"></i> {{ um.profesorNombre }}</span>
                 }
-                <span><i class="bi bi-award"></i>
-                  @if (um.estado === 'APROBADO') {
-                    <strong style="color:var(--accent)">{{ um.notaFinal | number:'1.1-1' }}</strong>
-                  } @else if (um.notaFinal > 0) {
-                    {{ um.notaFinal | number:'1.1-1' }} parcial
+                <span>
+                  <i class="bi bi-award"></i>
+                  @if (um.notaFinal != null && um.notaFinal > 0) {
+                    {{ um.notaFinal }}
                   } @else {
                     Sin nota
                   }

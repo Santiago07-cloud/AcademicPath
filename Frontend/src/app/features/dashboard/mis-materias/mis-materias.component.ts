@@ -9,6 +9,7 @@ import { catchError, finalize } from 'rxjs/operators';
 import { AuthService } from '../../../core/services/auth.service';
 import { MateriaService } from '../../../core/services/materia.service';
 import { ProgresoService } from '../../../core/services/progreso.service';
+import { AcademicStatsService } from '../../../core/services/academic-stats.service';
 import { DropdownPositionService, PanelPosition } from '../../../core/services/dropdown-position.service';
 import {
   Materia, UsuarioMateria, Actividad, Calificacion,
@@ -26,9 +27,10 @@ type Vista = 'lista' | 'detalle';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class MisMateriasComponent implements OnInit {
-  private readonly auth     = inject(AuthService);
-  private readonly svc      = inject(MateriaService);
-  private readonly progreso = inject(ProgresoService);
+  private readonly auth       = inject(AuthService);
+  private readonly svc        = inject(MateriaService);
+  private readonly progreso   = inject(ProgresoService);
+  private readonly statsSvc   = inject(AcademicStatsService);
   private readonly fb       = inject(FormBuilder);
   private readonly cdr      = inject(ChangeDetectorRef);
   private readonly dropPos  = inject(DropdownPositionService);
@@ -351,6 +353,7 @@ export class MisMateriasComponent implements OnInit {
             this.error.set('');
             this.cargarDatos();
             this.progreso.recalcularProgreso(this.currentUser!.id).subscribe();
+            this.statsSvc.refresh();
           },
           error: (e: any) => { this.error.set(e?.error?.message ?? 'Error al inscribir'); setTimeout(() => this.error.set(''), 4000); },
         });
@@ -491,6 +494,7 @@ export class MisMateriasComponent implements OnInit {
         if (this.currentUser) this.progreso.recalcularProgreso(this.currentUser.id).subscribe();
         this.misInscripciones.update(l => l.map(i => i.id === insc.id ? { ...i, notaFinal: nota } : i));
         this.promediosActuales.update(m => ({ ...m, [insc.id]: nota }));
+        this.statsSvc.refresh();
       },
     });
   }
@@ -517,7 +521,7 @@ export class MisMateriasComponent implements OnInit {
   retirarMateria(id: number): void {
     this.confirmar('Retirar materia', 'Se eliminará esta materia con todas sus actividades y calificaciones.', () =>
       this.svc.eliminarInscripcion(id).subscribe({
-        next: () => { this.cargarDatos(); if (this.currentUser) this.progreso.recalcularProgreso(this.currentUser.id).subscribe(); },
+        next: () => { this.cargarDatos(); if (this.currentUser) this.progreso.recalcularProgreso(this.currentUser.id).subscribe(); this.statsSvc.refresh(); },
       })
     );
   }

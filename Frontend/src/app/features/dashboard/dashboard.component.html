@@ -145,15 +145,15 @@
                 </div>
               </div>
 
-              @if (progreso(); as datos) {
+              @if (stats().totalMaterias > 0) {
                 <div class="small-stack">
                   <div class="small-stat">
                     <span>Promedio</span>
-                    <strong>{{ datos.promedio.toFixed(1) }}</strong>
+                    <strong>{{ promedioDisplay() }}</strong>
                   </div>
                   <div class="small-stat">
-                    <span>Créditos aprobados</span>
-                    <strong>{{ datos.creditosAprobados }}/{{ datos.creditosTotales }}</strong>
+                    <span>Créditos cursados</span>
+                    <strong>{{ stats().creditosCursados }}/{{ stats().creditosTotales }}</strong>
                   </div>
                   <div class="small-stat">
                     <span>Avance total</span>
@@ -190,7 +190,7 @@
 
         <!-- ── Progreso ── -->
         @else if (seccionActiva() === 'progreso') {
-          <app-progreso [progreso]="progreso()" [pendientes]="pendientes()"></app-progreso>
+          <app-progreso></app-progreso>
 
           <article class="surface-card panel-card">
             <div class="section-header section-header--compact">
