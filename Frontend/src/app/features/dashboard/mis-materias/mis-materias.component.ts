@@ -249,7 +249,10 @@ export class MisMateriasComponent implements OnInit {
     creditos:    [3,  [Validators.required, Validators.min(1), Validators.max(20)]],
     descripcion: [''],
     semestre:    [1,  Validators.required],
-    anio:        [new Date().getFullYear(), Validators.required],
+    anio:        [
+      new Date().getFullYear(),
+      [Validators.required, Validators.min(new Date().getFullYear()), Validators.max(new Date().getFullYear() + 1)]
+    ],
     estado:      ['CURSANDO'],
   });
 
@@ -267,6 +270,10 @@ export class MisMateriasComponent implements OnInit {
   });
 
   // ── Computed ──
+  readonly pesoAcumulado  = computed(() => this.actividades().reduce((s, a) => s + (a.peso ?? 0), 0));
+  readonly pesoRestante   = computed(() => Math.max(0, 100 - this.pesoAcumulado()));
+  readonly pesoCompleto   = computed(() => this.pesoAcumulado() >= 100);
+
   readonly creditosTotales = computed(() =>
     this.misInscripciones().reduce((s, i) => s + (i.materia?.creditos ?? 0), 0)
   );
@@ -278,9 +285,29 @@ export class MisMateriasComponent implements OnInit {
     if (!ap.length) return null;
     return ap.reduce((s, i) => s + (i.notaFinal ?? 0), 0) / ap.length;
   });
-  readonly pesoAcumulado  = computed(() => this.actividades().reduce((s, a) => s + (a.peso ?? 0), 0));
-  readonly pesoRestante   = computed(() => Math.max(0, 100 - this.pesoAcumulado()));
-  readonly pesoCompleto   = computed(() => this.pesoAcumulado() >= 100);
+
+  // avanceActual: usa avancePorcentaje del backend si existe, si no calcula local
+  readonly avanceActual = computed(() => {
+    const insc = this.inscripcionActiva();
+    if (!insc) return this.pesoAcumulado();
+    return insc.avancePorcentaje != null ? insc.avancePorcentaje : this.pesoAcumulado();
+  });
+
+  // Solo permite cerrar si peso == 100% y todas las actividades tienen nota
+  readonly puedesCerrar = computed(() => {
+    const acts = this.actividades();
+    if (!acts.length) return false;
+    if (this.pesoAcumulado() < 100) return false;
+    const cals = this.calificacionesPorActividad();
+    return acts.every(a => (cals[a.id]?.length ?? 0) > 0);
+  });
+
+  // Materia cerrada = solo lectura
+  readonly esModoLectura = computed(() => {
+    const insc = this.inscripcionActiva();
+    return insc ? this.esCerrada(insc.estado) : false;
+  });
+
   readonly notaInscripcionActiva = computed(() =>
     this.calcularNotaActual(this.actividades(), this.calificacionesPorActividad())
   );
@@ -425,6 +452,14 @@ export class MisMateriasComponent implements OnInit {
 
   guardarActividad(): void {
     if (this.formActividad.invalid || !this.inscripcionActiva()) return;
+    const insc = this.inscripcionActiva()!;
+
+    // Bloquear si la materia está cerrada
+    if (this.esCerrada(insc.estado)) {
+      this.error.set('No se pueden agregar actividades a una materia finalizada.');
+      setTimeout(() => this.error.set(''), 3000);
+      return;
+    }
     const v = this.formActividad.getRawValue();
     if (Number(v.peso) > this.pesoMaximoDisponible()) {
       this.error.set(`El peso excede el disponible (${this.pesoRestante()}% libres).`);
@@ -484,7 +519,19 @@ export class MisMateriasComponent implements OnInit {
   sincronizarNotaFinal(): void {
     const nota = this.notaInscripcionActiva();
     const insc = this.inscripcionActiva();
-    if (nota == null || !insc) return;
+    if (!insc) return;
+    const avance = this.pesoAcumulado();
+    const todasCalificadas = this.actividades().every(
+      a => (this.calificacionesPorActividad()[a.id]?.length ?? 0) > 0
+    );
+    const avanceFinal = (avance >= 100 && todasCalificadas) ? 100 : avance;
+
+    // Actualizar avancePorcentaje en el objeto local para que la card reaccione
+    this.misInscripciones.update(l =>
+      l.map(i => i.id === insc.id ? { ...i, avancePorcentaje: avanceFinal } : i)
+    );
+
+    if (nota == null) return;
     this.svc.actualizarInscripcion(insc.id, {
       usuarioId: insc.usuarioId, materiaId: insc.materiaId,
       semestre: Number(insc.semestre), anio: insc.anio,
@@ -505,13 +552,27 @@ export class MisMateriasComponent implements OnInit {
     const insc = this.inscripcionACerrar();
     if (!insc) return;
     this.mostrarModalCerrar.set(false);
+
+    // Usar la nota calculada del promedio actual, NO la nota guardada en el objeto
+    // Esto evita el bug donde insc.notaFinal es null o 0 y se sobrescribe
+    const notaCalculada = this.promediosActuales()[insc.id] ?? insc.notaFinal ?? null;
+
     this.svc.actualizarInscripcion(insc.id, {
-      usuarioId: insc.usuarioId, materiaId: insc.materiaId,
-      semestre: Number(insc.semestre), anio: insc.anio,
-      estado: nuevoEstado, notaFinal: insc.notaFinal ?? undefined,
+      usuarioId:  insc.usuarioId,
+      materiaId:  insc.materiaId,
+      semestre:   Number(insc.semestre),
+      anio:       insc.anio,
+      estado:     nuevoEstado,
+      // Solo enviar notaFinal si hay una nota real calculada
+      ...(notaCalculada != null ? { notaFinal: Math.round(notaCalculada * 100) / 100 } : {}),
     }).subscribe({
-      next: () => {
-        this.misInscripciones.update(l => l.map(i => i.id === insc.id ? { ...i, estado: nuevoEstado } : i));
+      next: (updated) => {
+        this.misInscripciones.update(l =>
+          l.map(i => i.id === insc.id
+            ? { ...i, estado: nuevoEstado, notaFinal: updated.notaFinal ?? notaCalculada }
+            : i
+          )
+        );
         if (this.currentUser) this.progreso.recalcularProgreso(this.currentUser.id).subscribe();
         this.cdr.markForCheck();
       },
@@ -527,6 +588,16 @@ export class MisMateriasComponent implements OnInit {
   }
 
   // ── Helpers ──
+  /** Verifica si una materia específica puede cerrarse (para usar desde la card) */
+  puedesCerrarDesdeCard(insc: UsuarioMateria): boolean {
+    const acts = this.actividades();
+    // Si estamos viendo el detalle de esta materia, usar los datos cargados
+    if (this.inscripcionActiva()?.id === insc.id) {
+      return this.puedesCerrar();
+    }
+    // Si no está cargada en detalle, habilitar el botón (el backend lo validará)
+    return true;
+  }
   esCursando(e: string): boolean { return e === 'CURSANDO' || e === 'activa'; }
   esCerrada(e: string): boolean  { return e === 'APROBADA' || e === 'REPROBADA'; }
 

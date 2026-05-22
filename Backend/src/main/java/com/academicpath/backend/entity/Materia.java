@@ -21,7 +21,7 @@ public class Materia {
     @EqualsAndHashCode.Include
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String codigo;
 
     @Column(nullable = false)

@@ -98,8 +98,9 @@
                 }
               </div>
               <div class="mm-card__actions">
-                @if (esCursando(insc.estado)) {
-                  <button class="btn-icon-sm btn-icon-accent" title="Cerrar materia"
+                @if (esCursando(insc.estado) && insc.avancePorcentaje === 100) {
+                  <button class="btn-icon-sm btn-icon-accent"
+                    title="Materia al 100% — Aprobar o Reprobar"
                     (click)="$event.stopPropagation(); abrirModalCerrar(insc)">
                     <i class="bi bi-flag-fill"></i>
                   </button>
@@ -134,11 +135,27 @@
         </div>
       </div>
       <button class="btn btn-primary" (click)="abrirModalActividad()"
-        [disabled]="pesoCompleto()"
-        [title]="pesoCompleto() ? 'Ya hay 100% de peso asignado' : 'Agregar nueva actividad'">
+        [disabled]="pesoCompleto() || esModoLectura()"
+        [title]="esModoLectura() ? 'Materia cerrada — solo lectura' : pesoCompleto() ? 'Ya hay 100% de peso asignado' : 'Agregar nueva actividad'">
         <i class="bi bi-plus-lg"></i> Nueva actividad
       </button>
+      @if (esCursando(inscripcionActiva()!.estado) && puedesCerrar()) {
+        <button class="btn btn-accent" (click)="abrirModalCerrar(inscripcionActiva()!)" title="Cerrar materia">
+          <i class="bi bi-flag-fill"></i> Cerrar materia
+        </button>
+      }
     </div>
+
+    <!-- Banner modo lectura -->
+    @if (esModoLectura()) {
+      <div class="modo-lectura-banner">
+        <i class="bi bi-lock-fill"></i>
+        <div>
+          <strong>Materia {{ inscripcionActiva()!.estado === 'APROBADA' ? 'aprobada' : 'reprobada' }}</strong>
+          <p>Esta materia está cerrada. Puedes ver tu historial pero no modificar nada.</p>
+        </div>
+      </div>
+    }
 
     <!-- Barra de peso acumulado -->
     <div class="peso-tracker">
@@ -208,18 +225,22 @@
               }
 
               <div class="act-actions">
-                <button class="btn-icon-sm btn-icon-accent" title="Registrar nota"
-                  (click)="abrirModalCalificacion(act)">
-                  <i class="bi bi-pencil-square"></i>
-                </button>
-                <button class="btn-icon-sm" title="Editar actividad"
-                  (click)="abrirModalActividad(act)">
-                  <i class="bi bi-pencil"></i>
-                </button>
-                <button class="btn-icon-sm btn-icon-danger" title="Eliminar"
-                  (click)="eliminarActividad(act.id)">
-                  <i class="bi bi-trash3"></i>
-                </button>
+                @if (!esModoLectura()) {
+                  <button class="btn-icon-sm btn-icon-accent" title="Registrar nota"
+                    (click)="abrirModalCalificacion(act)">
+                    <i class="bi bi-pencil-square"></i>
+                  </button>
+                  <button class="btn-icon-sm" title="Editar actividad"
+                    (click)="abrirModalActividad(act)">
+                    <i class="bi bi-pencil"></i>
+                  </button>
+                  <button class="btn-icon-sm btn-icon-danger" title="Eliminar"
+                    (click)="eliminarActividad(act.id)">
+                    <i class="bi bi-trash3"></i>
+                  </button>
+                } @else {
+                  <span class="act-readonly-tag"><i class="bi bi-lock"></i> Solo lectura</span>
+                }
               </div>
             </div>
           </div>

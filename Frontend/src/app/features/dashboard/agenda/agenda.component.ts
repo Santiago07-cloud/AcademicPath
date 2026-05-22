@@ -254,29 +254,33 @@ export class AgendaComponent {
     this.materiaService.obtenerMisMateriasInscritas(usuarioId).subscribe({
       next: (inscs) => {
         const lista = Array.isArray(inscs) ? inscs : [];
-        const materiaIds = new Set(lista.map((i) => Number(i.materiaId)).filter(Boolean));
 
-        const directas = lista
-          .map((i) => i.materia)
+        // SOLO materias activas (CURSANDO) — las cerradas no aparecen en Agenda
+        const activas = lista.filter(i =>
+          i.estado === 'CURSANDO' || i.estado === 'activa'
+        );
+
+        const directas = activas
+          .map(i => i.materia)
           .filter((m): m is Materia => Boolean(m));
 
-        if (!materiaIds.size) {
+        if (!activas.length) {
           this.materias.set([]);
           return;
         }
 
-        if (directas.length) {
-          const unique = Array.from(new Map(directas.map((m) => [m.id, m])).values());
-          if (unique.length >= materiaIds.size) {
-            this.materias.set(unique);
-            return;
-          }
+        if (directas.length >= activas.length) {
+          const unique = Array.from(new Map(directas.map(m => [m.id, m])).values());
+          this.materias.set(unique);
+          return;
         }
 
+        // Fallback: buscar en catálogo
+        const materiaIds = new Set(activas.map(i => Number(i.materiaId)).filter(Boolean));
         this.materiaService.obtenerMaterias().subscribe({
           next: (materias) => {
             const catalogo = Array.isArray(materias) ? materias : [];
-            this.materias.set(catalogo.filter((m) => materiaIds.has(m.id)));
+            this.materias.set(catalogo.filter(m => materiaIds.has(m.id)));
           },
           error: () => this.materias.set([]),
         });
