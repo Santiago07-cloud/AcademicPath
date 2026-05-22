@@ -20,27 +20,24 @@ import java.util.List;
 @Service
 public class CalificacionServiceImpl implements CalificacionService {
 
-    @Autowired
-    private CalificacionRepository calificacionRepository;
-
-    @Autowired
-    private ActividadRepository actividadRepository;
-
-    @Autowired
-    private CalificacionMapper calificacionMapper;
-
-    @Autowired
-    private ProgresoAcademicoService progresoAcademicoService;
+    @Autowired private CalificacionRepository calificacionRepository;
+    @Autowired private ActividadRepository actividadRepository;
+    @Autowired private CalificacionMapper calificacionMapper;
+    @Autowired private ProgresoAcademicoService progresoAcademicoService;
+    @Autowired private MateriaProgressService progressService;
 
     @Override
     @Transactional
     public CalificacionResponse crear(CalificacionRequest request) {
         Actividad actividad = actividadRepository.findById(request.getActividadId())
-                .orElseThrow(() -> new ResourceNotFoundException("Actividad no encontrada con id: " + request.getActividadId()));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                    "Actividad no encontrada con id: " + request.getActividadId()));
+
+        // VALIDAR: no se puede calificar en materia cerrada
+        progressService.validarMateriaAbierta(actividad.getUsuarioMateria(), "crear calificacion");
 
         validarNota(request.getNota(), actividad.getNotaMaxima());
 
-        // Extraer usuarioId mientras la sesión JPA está abierta y las relaciones lazy accesibles
         Long usuarioId = actividad.getUsuarioMateria().getUsuario().getId();
 
         Calificacion calificacion = Calificacion.builder()
@@ -49,10 +46,10 @@ public class CalificacionServiceImpl implements CalificacionService {
                 .retroalimentacion(request.getRetroalimentacion())
                 .build();
 
-        CalificacionResponse response = calificacionMapper.toResponse(calificacionRepository.save(calificacion));
+        CalificacionResponse response = calificacionMapper.toResponse(
+            calificacionRepository.save(calificacion));
 
         progresoAcademicoService.recalcularProgreso(usuarioId);
-
         return response;
     }
 
@@ -79,17 +76,20 @@ public class CalificacionServiceImpl implements CalificacionService {
         Calificacion calificacion = calificacionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Calificación no encontrada con id: " + id));
 
+        // VALIDAR: no se puede editar calificacion en materia cerrada
+        progressService.validarMateriaAbierta(
+            calificacion.getActividad().getUsuarioMateria(), "editar calificacion");
+
         validarNota(request.getNota(), calificacion.getActividad().getNotaMaxima());
 
         calificacion.setNota(request.getNota());
         calificacion.setRetroalimentacion(request.getRetroalimentacion());
 
-        CalificacionResponse response = calificacionMapper.toResponse(calificacionRepository.save(calificacion));
+        CalificacionResponse response = calificacionMapper.toResponse(
+            calificacionRepository.save(calificacion));
 
-        // Recalcular progreso académico automáticamente
         Long usuarioId = calificacion.getActividad().getUsuarioMateria().getUsuario().getId();
         progresoAcademicoService.recalcularProgreso(usuarioId);
-
         return response;
     }
 

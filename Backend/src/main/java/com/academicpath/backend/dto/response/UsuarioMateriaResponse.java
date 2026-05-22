@@ -29,6 +29,7 @@ public class UsuarioMateriaResponse {
     private Integer anio;
     private String estado;
     private Double notaFinal;
+    private Double avancePorcentaje; // 0.0 a 100.0 — porcentaje de actividades calificadas
     private LocalDateTime fechaCreacion;
 
     @Data

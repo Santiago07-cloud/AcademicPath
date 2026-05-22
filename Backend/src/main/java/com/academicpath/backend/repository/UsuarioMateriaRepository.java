@@ -16,7 +16,7 @@ public interface UsuarioMateriaRepository extends JpaRepository<UsuarioMateria, 
 
     List<UsuarioMateria> findByUsuarioIdAndEstado(Long usuarioId, String estado);
 
-    Optional<UsuarioMateria> findByUsuarioIdAndMateriaId(Long usuarioId, Long materiaId);
+    List<UsuarioMateria> findByUsuarioIdAndMateriaId(Long usuarioId, Long materiaId);
 
     @Query("SELECT um FROM UsuarioMateria um WHERE um.usuario.id = :usuarioId AND um.estado = 'APROBADO'")
     List<UsuarioMateria> findAprobadosByUsuarioId(@Param("usuarioId") Long usuarioId);

@@ -19,22 +19,22 @@ import java.util.List;
 @Service
 public class ActividadServiceImpl implements ActividadService {
 
-    @Autowired
-    private ActividadRepository actividadRepository;
-
-    @Autowired
-    private UsuarioMateriaRepository usuarioMateriaRepository;
-
-    @Autowired
-    private ActividadMapper actividadMapper;
+    @Autowired private ActividadRepository actividadRepository;
+    @Autowired private UsuarioMateriaRepository usuarioMateriaRepository;
+    @Autowired private ActividadMapper actividadMapper;
+    @Autowired private MateriaProgressService progressService;
 
     @Override
     @Transactional
     public ActividadResponse crear(ActividadRequest request) {
         UsuarioMateria usuarioMateria = usuarioMateriaRepository.findById(request.getUsuarioMateriaId())
-                .orElseThrow(() -> new ResourceNotFoundException("Usuario-Materia no encontrada con id: " + request.getUsuarioMateriaId()));
+                .orElseThrow(() -> new ResourceNotFoundException(
+                    "Usuario-Materia no encontrada con id: " + request.getUsuarioMateriaId()));
 
-        validarPeso(request.getPeso());
+        // VALIDAR: no se puede agregar actividades a una materia cerrada
+        progressService.validarMateriaAbierta(usuarioMateria, "crear actividad");
+
+        validarPeso(request.getPeso(), request.getUsuarioMateriaId(), null);
 
         Actividad actividad = Actividad.builder()
                 .usuarioMateria(usuarioMateria)
@@ -71,7 +71,10 @@ public class ActividadServiceImpl implements ActividadService {
         Actividad actividad = actividadRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Actividad no encontrada con id: " + id));
 
-        validarPeso(request.getPeso());
+        // VALIDAR: no se puede editar actividades de una materia cerrada
+        progressService.validarMateriaAbierta(actividad.getUsuarioMateria(), "editar actividad");
+
+        validarPeso(request.getPeso(), actividad.getUsuarioMateria().getId(), id);
 
         actividad.setTitulo(request.getTitulo());
         actividad.setTipo(request.getTipo());
@@ -87,12 +90,36 @@ public class ActividadServiceImpl implements ActividadService {
     public void eliminar(Long id) {
         Actividad actividad = actividadRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Actividad no encontrada con id: " + id));
+
+        // VALIDAR: no se puede eliminar actividades de una materia cerrada
+        progressService.validarMateriaAbierta(actividad.getUsuarioMateria(), "eliminar actividad");
+
         actividadRepository.delete(actividad);
     }
 
-    private void validarPeso(Double peso) {
-        if (peso < 0 || peso > 100) {
-            throw new ActividadException("El peso de la actividad debe estar entre 0 y 100");
+    /**
+     * Valida que el peso no supere 100% considerando las actividades existentes.
+     * Si actividadIdExcluir es != null, excluye esa actividad del calculo (caso edicion).
+     */
+    private void validarPeso(Double peso, Long usuarioMateriaId, Long actividadIdExcluir) {
+        if (peso <= 0 || peso > 100) {
+            throw new ActividadException("El peso debe estar entre 1 y 100.");
+        }
+
+        List<Actividad> existentes = actividadRepository.findByUsuarioMateriaId(usuarioMateriaId);
+        double pesoActual = existentes.stream()
+                .filter(a -> !a.getId().equals(actividadIdExcluir))
+                .mapToDouble(Actividad::getPeso)
+                .sum();
+
+        if (pesoActual + peso > 100.0) {
+            throw new ActividadException(
+                String.format(
+                    "El peso total superaria 100%%. Peso acumulado actual: %.1f%%. " +
+                    "Maximo disponible para esta actividad: %.1f%%.",
+                    pesoActual, 100.0 - pesoActual
+                )
+            );
         }
     }
 }

@@ -24,6 +24,7 @@ export interface UsuarioMateria {
   anio: number;
   estado: string;
   notaFinal?: number | null;
+  avancePorcentaje?: number | null;
   fechaCreacion?: string;
   materia?: Materia;
   materiaNombre?: string;

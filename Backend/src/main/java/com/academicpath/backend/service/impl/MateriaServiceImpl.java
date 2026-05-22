@@ -26,10 +26,6 @@ public class MateriaServiceImpl implements MateriaService {
     @Override
     @Transactional
     public MateriaResponse crear(MateriaRequest request) {
-        if (materiaRepository.existsByCodigo(request.getCodigo())) {
-            throw new MateriaException("El código de materia ya existe: " + request.getCodigo());
-        }
-
         Materia materia = Materia.builder()
                 .codigo(request.getCodigo())
                 .nombre(request.getNombre())
