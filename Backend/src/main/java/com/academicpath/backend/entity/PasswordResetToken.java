@@ -18,6 +18,7 @@ public class PasswordResetToken {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+<<<<<<< HEAD
     /** Token UUID seguro generado con SecureRandom */
     @Column(nullable = false, unique = true)
     private String token;
@@ -34,12 +35,27 @@ public class PasswordResetToken {
     /** Indica si ya fue utilizado (un solo uso) */
     @Builder.Default
     @Column(nullable = false)
+=======
+    @Column(nullable = false, unique = true, length = 500)
+    private String token;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "usuario_id", nullable = false)
+    private Usuario usuario;
+
+    @Column(nullable = false)
+    private LocalDateTime fechaExpiracion;
+
+    @Column(nullable = false)
+    @Builder.Default
+>>>>>>> 9754ef26dd20d0a8b3bc72447006849f61443a43
     private boolean usado = false;
 
     @CreationTimestamp
     @Column(name = "fecha_creacion", nullable = false, updatable = false)
     private LocalDateTime fechaCreacion;
 
+<<<<<<< HEAD
     /** Comprueba si el token ha expirado */
     public boolean isExpired() {
         return LocalDateTime.now().isAfter(this.fechaExpiracion);
@@ -50,3 +66,13 @@ public class PasswordResetToken {
         return !this.usado && !this.isExpired();
     }
 }
+=======
+    /**
+     * Valida si el token es válido (no expirado y no usado)
+     */
+    public boolean isValid() {
+        return !usado && LocalDateTime.now().isBefore(fechaExpiracion);
+    }
+}
+
+>>>>>>> 9754ef26dd20d0a8b3bc72447006849f61443a43

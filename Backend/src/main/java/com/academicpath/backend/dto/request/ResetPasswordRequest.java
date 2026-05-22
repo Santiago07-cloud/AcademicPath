@@ -1,21 +1,23 @@
 package com.academicpath.backend.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class ResetPasswordRequest {
 
-    @NotBlank(message = "El token es obligatorio")
+    @NotBlank(message = "El token es requerido")
     private String token;
 
-    @NotBlank(message = "La nueva contraseña es obligatoria")
+    @NotBlank(message = "La contraseña es requerida")
     @Size(min = 8, message = "La contraseña debe tener al menos 8 caracteres")
-    @Pattern(
-        regexp = "^(?=.*[A-Z])(?=.*[0-9]).{8,}$",
-        message = "La contraseña debe contener al menos una mayúscula y un número"
-    )
     private String nuevaContrasena;
 }
+
