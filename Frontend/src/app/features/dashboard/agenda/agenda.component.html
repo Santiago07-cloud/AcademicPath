@@ -74,43 +74,41 @@
           <label class="field">
             <span class="field-label">Fecha límite</span>
             <input type="hidden" formControlName="fechaLimite" />
-            <div class="select-shell" (click)="$event.stopPropagation()">
-              <button type="button" class="select-trigger" (click)="toggleCalendar()">
-                <span>{{ calendarInputLabel() }}</span>
-                <i class="bi bi-calendar3"></i>
-              </button>
-              @if (calendarOpen()) {
-                <div class="select-panel calendar-panel">
-                  <div class="calendar-header">
-                    <button type="button" class="icon-button" (click)="prevMonth()" aria-label="Mes anterior">
-                      <i class="bi bi-chevron-left"></i>
-                    </button>
-                    <span>{{ calendarLabel() }}</span>
-                    <button type="button" class="icon-button" (click)="nextMonth()" aria-label="Mes siguiente">
-                      <i class="bi bi-chevron-right"></i>
-                    </button>
-                  </div>
-                  <div class="calendar-weekdays">
-                    <span>Do</span><span>Lu</span><span>Ma</span><span>Mi</span><span>Ju</span><span>Vi</span><span>Sa</span>
-                  </div>
-                  <div class="calendar-grid">
-                    @for (day of calendarDays(); track $index) {
-                      <button
-                        type="button"
-                        class="calendar-day"
-                        [class.calendar-day--empty]="!day.date"
-                        [class.calendar-day--today]="day.isToday"
-                        [class.calendar-day--selected]="day.isSelected"
-                        (click)="day.date ? selectCalendarDate(day.date) : null"
-                        [disabled]="!day.date"
-                      >
-                        {{ day.label }}
-                      </button>
-                    }
-                  </div>
+            <button type="button" class="select-trigger" (click)="toggleCalendar()" (click)="$event.stopPropagation()">
+              <span>{{ calendarInputLabel() }}</span>
+              <i class="bi bi-calendar3" style="color:var(--accent)"></i>
+            </button>
+            @if (calendarOpen()) {
+              <div class="calendar-inline" (click)="$event.stopPropagation()">
+                <div class="calendar-header">
+                  <button type="button" class="icon-button" (click)="prevMonth()" aria-label="Mes anterior">
+                    <i class="bi bi-chevron-left"></i>
+                  </button>
+                  <span>{{ calendarLabel() }}</span>
+                  <button type="button" class="icon-button" (click)="nextMonth()" aria-label="Mes siguiente">
+                    <i class="bi bi-chevron-right"></i>
+                  </button>
                 </div>
-              }
-            </div>
+                <div class="calendar-weekdays">
+                  <span>Do</span><span>Lu</span><span>Ma</span><span>Mi</span><span>Ju</span><span>Vi</span><span>Sa</span>
+                </div>
+                <div class="calendar-grid">
+                  @for (day of calendarDays(); track $index) {
+                    <button
+                      type="button"
+                      class="calendar-day"
+                      [class.calendar-day--empty]="!day.date"
+                      [class.calendar-day--today]="day.isToday"
+                      [class.calendar-day--selected]="day.isSelected"
+                      (click)="day.date ? selectCalendarDate(day.date) : null"
+                      [disabled]="!day.date"
+                    >
+                      {{ day.label }}
+                    </button>
+                  }
+                </div>
+              </div>
+            }
           </label>
 
           <label class="field">

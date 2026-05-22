@@ -32,8 +32,7 @@
         (click)="setTab(tab.id)">
         <i [class]="tab.icon"></i> {{ tab.label }}
         <span class="tab-badge">
-          @if (tab.id === 'usuarios')       { {{ usuarios().length }} }
-          @if (tab.id === 'prerrequisitos') { {{ prereqs().length }} }
+          @if (tab.id === 'usuarios') { {{ usuarios().length }} }
         </span>
       </button>
     }
@@ -129,43 +128,6 @@
                     </td>
                   </tr>
                 }
-              }
-            </tbody>
-          </table>
-        </div>
-      }
-    </div>
-  }
-
-  <!-- ── PRERREQUISITOS ── -->
-  @if (tabActiva() === 'prerrequisitos') {
-    <div class="admin-section">
-      <div class="admin-section__head">
-        <span class="chip">{{ prereqs().length }} relaciones</span>
-        <button class="btn btn-primary btn-sm" (click)="abrirModalPrereq()">
-          <i class="bi bi-plus-lg"></i> Nueva relación
-        </button>
-      </div>
-      <p class="admin-section__hint">Define qué materias hay que aprobar antes de cursar otra.</p>
-      @if (prereqs().length === 0) {
-        <div class="admin-empty"><i class="bi bi-diagram-3"></i><p>Sin prerrequisitos configurados</p></div>
-      } @else {
-        <div class="admin-table-wrap">
-          <table class="admin-table">
-            <thead>
-              <tr><th>Materia</th><th>Requiere haber aprobado</th><th></th></tr>
-            </thead>
-            <tbody>
-              @for (pr of prereqs(); track pr.id) {
-                <tr>
-                  <td><strong>{{ pr.materiaNombre }}</strong></td>
-                  <td class="muted">{{ pr.materiaPrerrequisitNombre }}</td>
-                  <td class="actions-cell">
-                    <button class="btn-icon-sm btn-icon-danger" title="Eliminar" (click)="confirmarEliminarPrereq(pr)">
-                      <i class="bi bi-trash3"></i>
-                    </button>
-                  </td>
-                </tr>
               }
             </tbody>
           </table>

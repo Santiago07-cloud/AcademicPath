@@ -12,7 +12,7 @@ import { Usuario } from '../../../core/models/usuario.model';
 import { PrerrequisitoResponse } from '../../../core/models/progreso.model';
 import { AprobadasPipe, CursandoPipe } from './admin.pipes';
 
-type TabAdmin = 'usuarios' | 'prerrequisitos';
+type TabAdmin = 'usuarios' | 'materias' | 'profesores' | 'prerrequisitos';
 
 @Component({
   selector: 'app-admin',
@@ -141,8 +141,9 @@ export class AdminComponent implements OnInit {
   });
 
   readonly tabs: { id: TabAdmin; label: string; icon: string }[] = [
-    { id: 'usuarios',       label: 'Usuarios',      icon: 'bi bi-people' },
-    { id: 'prerrequisitos', label: 'Prerrequisitos', icon: 'bi bi-diagram-3' },
+    { id: 'usuarios',       label: 'Usuarios',       icon: 'bi bi-people' },
+    { id: 'materias',       label: 'Materias',       icon: 'bi bi-journals' },
+    { id: 'prerrequisitos', label: 'Prerrequisitos', icon: 'bi bi-diagram-2' },
   ];
 
   ngOnInit(): void { this.cargarTodo(); }

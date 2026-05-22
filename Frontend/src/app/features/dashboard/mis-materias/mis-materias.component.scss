@@ -344,8 +344,12 @@
   position: fixed; inset: 0;
   background: rgba(0,0,0,.65);
   backdrop-filter: blur(6px);
-  display: grid; place-items: center;
-  z-index: 200; padding: 1rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  z-index: 200;
+  padding: 1.5rem 1rem;
+  overflow-y: auto;
 }
 
 .modal-card {
@@ -353,15 +357,18 @@
   border-radius: 24px;
   border: 1px solid var(--border);
   background: #10131e;
-  padding: 1.5rem;
+  padding: 1.75rem;
   display: flex; flex-direction: column; gap: 1.25rem;
   box-shadow: 0 24px 80px rgba(0,0,0,.5);
+  margin: auto 0;
+  // SIN overflow ni max-height — el overflow lo maneja el overlay
+  position: relative;
 
-  &--sm { max-width: 380px; }
+  &--sm { max-width: 400px; }
 
   &--confirm {
     text-align: center;
-    gap: .75rem;
+    gap: .85rem;
     h3 { font-size: 1.05rem; font-weight: 700; margin: 0; }
     p  { font-size: .87rem; color: var(--text-2, #8a95a3); margin: 0; line-height: 1.55; }
   }

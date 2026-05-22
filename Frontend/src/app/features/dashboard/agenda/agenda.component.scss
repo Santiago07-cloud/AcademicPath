@@ -58,6 +58,8 @@
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.03);
   align-content: start;
+  /* overflow visible para que los dropdowns no sean cortados por border-radius */
+  overflow: visible;
 }
 
 
@@ -150,12 +152,17 @@
   align-self: center;
 }
 
-.calendar-panel {
+.calendar-panel,
+.calendar-inline {
   padding: 0.85rem;
   display: grid;
   gap: 0.65rem;
   border-radius: 18px;
-  background: linear-gradient(180deg, rgba(18, 26, 30, 0.98), rgba(12, 17, 20, 0.98));
+  border: 1px solid var(--border-hover);
+  background: #111820;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  margin-top: 0.4rem;
+  /* fluye en el DOM — no usa position:absolute, nunca se corta */
 }
 
 .calendar-header {
@@ -163,7 +170,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.6rem;
-  padding: 0.35rem 0.4rem;
+  padding: 0.45rem 0.6rem;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.04);
   color: var(--text);
@@ -190,30 +197,36 @@
 
 .calendar-weekdays {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 0.3rem;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.25rem;
   color: var(--text-2);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.06em;
+  text-align: center;
 }
 
 .calendar-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 0.35rem;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.3rem;
 }
 
 .calendar-day {
-  padding: 0.52rem 0;
-  border-radius: 12px;
+  aspect-ratio: 1;        /* celdas cuadradas — se ven igual sin importar el ancho */
+  border-radius: 10px;
   border: 1px solid transparent;
   background: rgba(255, 255, 255, 0.03);
   color: var(--text);
   font: inherit;
+  font-size: 0.82rem;
   text-align: center;
   cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .calendar-day--empty {
@@ -225,17 +238,19 @@
 .calendar-day--today {
   border-color: rgba(0, 200, 150, 0.5);
   color: var(--accent);
+  font-weight: 700;
 }
 
 .calendar-day--selected {
   background: rgba(0, 200, 150, 0.22);
   border-color: rgba(0, 200, 150, 0.55);
   color: var(--accent);
+  font-weight: 700;
 }
 
 .calendar-day:hover:not(.calendar-day--empty):not(.calendar-day--selected) {
   background: rgba(255, 255, 255, 0.08);
-  transform: translateY(-1px);
+  border-color: var(--border-hover);
 }
 
 .select-trigger i.bi-calendar3 {

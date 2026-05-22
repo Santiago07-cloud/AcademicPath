@@ -236,39 +236,36 @@
   <div class="modal-overlay" (click)="mostrarModalInscribir.set(false)">
     <div class="modal-card" (click)="$event.stopPropagation()">
       <div class="modal-header">
-        <h3>Inscribir materia</h3>
+        <h3>Nueva materia</h3>
         <button class="btn-icon-sm" (click)="mostrarModalInscribir.set(false)"><i class="bi bi-x-lg"></i></button>
       </div>
 
       <form [formGroup]="formInscribir" (ngSubmit)="inscribir()">
 
-        <!-- Selector de materia del catálogo -->
+        <p class="modal-section-label">Datos de la materia</p>
+
+        <div class="field-grid">
+          <label class="field">
+            <span class="field-label">Código</span>
+            <input class="field-input" type="text" formControlName="codigo"
+              placeholder="Ej: MAT101" style="text-transform:uppercase"/>
+          </label>
+          <label class="field">
+            <span class="field-label">Créditos</span>
+            <input class="field-input" type="number" formControlName="creditos" min="1" max="20"/>
+          </label>
+        </div>
+
         <label class="field">
-          <span class="field-label">Materia</span>
-          <input type="hidden" formControlName="materiaId"/>
-          @if (catalogo().length > 0) {
-            <div class="select-shell" (click)="$event.stopPropagation()">
-              <button type="button" class="select-trigger" (click)="toggleMateriaDropdown()">
-                <span [style.color]="!materiaIdSeleccionada() ? 'var(--text-3)' : 'var(--text)'">{{ materiaSeleccionadaLabel() }}</span>
-                <i class="bi bi-chevron-down"></i>
-              </button>
-              @if (materiaDropdownOpen()) {
-                <div class="select-panel">
-                  @for (m of catalogo(); track m.id) {
-                    <button type="button" class="select-option" (click)="selectMateriaInscribir(m.id)">
-                      <span>{{ m.codigo }}</span>
-                      <span class="select-option__name">{{ m.nombre }} &middot; {{ m.creditos }} créditos</span>
-                    </button>
-                  }
-                </div>
-              }
-            </div>
-          } @else {
-            <p class="field-hint" style="color:var(--warning)">
-              <i class="bi bi-exclamation-triangle"></i>
-              No hay materias en el catálogo. Pide al administrador que las agregue desde el panel Admin.
-            </p>
-          }
+          <span class="field-label">Nombre</span>
+          <input class="field-input" type="text" formControlName="nombre"
+            placeholder="Ej: Cálculo Diferencial"/>
+        </label>
+
+        <label class="field">
+          <span class="field-label">Descripción <span class="optional-tag">(opcional)</span></span>
+          <input class="field-input" type="text" formControlName="descripcion"
+            placeholder="Descripción breve"/>
         </label>
 
         <p class="modal-section-label" style="margin-top:1rem">Datos de inscripción</p>
@@ -278,7 +275,7 @@
             <span class="field-label">Semestre</span>
             <input type="hidden" formControlName="semestre"/>
             <div class="select-shell" (click)="$event.stopPropagation()">
-              <button type="button" class="select-trigger" (click)="toggleSemestreDropdown()">
+              <button type="button" class="select-trigger" (click)="toggleSemestreDropdown($event)">
                 <span>{{ semestreSeleccionadoLabel() }}</span>
                 <i class="bi bi-chevron-down"></i>
               </button>
@@ -301,8 +298,8 @@
 
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" (click)="mostrarModalInscribir.set(false)">Cancelar</button>
-          <button type="submit" class="btn btn-primary" [disabled]="formInscribir.invalid || !materiaIdSeleccionada()">
-            <i class="bi bi-check-lg"></i> Inscribir
+          <button type="submit" class="btn btn-primary" [disabled]="formInscribir.invalid">
+            <i class="bi bi-check-lg"></i> Crear e inscribir
           </button>
         </div>
       </form>
@@ -330,7 +327,7 @@
             <span class="field-label">Tipo</span>
             <input type="hidden" formControlName="tipo"/>
             <div class="select-shell" (click)="$event.stopPropagation()">
-              <button type="button" class="select-trigger" (click)="toggleTipoDropdown()">
+              <button type="button" class="select-trigger" (click)="toggleTipoDropdown($event)">
                 <span>{{ tipoSeleccionadoLabel() }}</span>
                 <i class="bi bi-chevron-down"></i>
               </button>
@@ -349,7 +346,7 @@
             <span class="field-label">Fecha entrega</span>
             <input type="hidden" formControlName="fechaEntrega"/>
             <div class="select-shell" (click)="$event.stopPropagation()">
-              <button type="button" class="select-trigger" (click)="toggleActividadCalendar()">
+              <button type="button" class="select-trigger" (click)="toggleActividadCalendar($event)">
                 <span>{{ actividadCalendarInputLabel() }}</span>
                 <i class="bi bi-calendar3"></i>
               </button>

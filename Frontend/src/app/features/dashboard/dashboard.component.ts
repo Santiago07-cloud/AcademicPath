@@ -71,11 +71,10 @@ export class DashboardComponent implements OnInit {
 
   readonly menuItems = computed<readonly MenuItem[]>(() => {
     const base: MenuItem[] = [
-      { id: 'resumen', label: 'Resumen', icon: 'bi bi-grid' },
-      { id: 'agenda', label: 'Agenda', icon: 'bi bi-calendar2-week' },
+      { id: 'resumen',  label: 'Resumen',  icon: 'bi bi-grid' },
+      { id: 'agenda',   label: 'Agenda',   icon: 'bi bi-calendar2-week' },
       { id: 'materias', label: 'Materias', icon: 'bi bi-book' },
       { id: 'progreso', label: 'Progreso', icon: 'bi bi-graph-up-arrow' },
-      { id: 'perfil', label: 'Mi perfil', icon: 'bi bi-person-circle' },
     ];
 
     if (this.isAdmin()) {
