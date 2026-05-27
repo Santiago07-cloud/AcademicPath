@@ -1,4 +1,4 @@
  :host {
-	display: block;
-	min-height: 100vh;
+  display: block;
+  height: 100%;  /* propaga la altura completa al dashboard */
 }
