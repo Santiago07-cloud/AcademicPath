@@ -345,10 +345,10 @@
   background: rgba(0,0,0,.65);
   backdrop-filter: blur(6px);
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   z-index: 200;
-  padding: 1.5rem 1rem;
+  padding: 1rem;
   overflow-y: auto;
 }
 
@@ -360,8 +360,8 @@
   padding: 1.75rem;
   display: flex; flex-direction: column; gap: 1.25rem;
   box-shadow: 0 24px 80px rgba(0,0,0,.5);
-  margin: auto 0;
-  // SIN overflow ni max-height — el overflow lo maneja el overlay
+  max-height: 90vh;
+  overflow-y: auto;
   position: relative;
 
   &--sm { max-width: 400px; }

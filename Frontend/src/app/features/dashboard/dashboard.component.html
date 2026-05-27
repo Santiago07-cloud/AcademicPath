@@ -79,101 +79,116 @@
           </div>
         </section>
 
-        <!-- ── Resumen ── -->
         @if (seccionActiva() === 'resumen') {
-          <section class="stats-grid">
-            @for (card of summaryCards(); track card.label) {
-              <article class="metric-card" [style.border-left-color]="card.color">
-                <p class="metric-card__label">
-                  <i [class]="card.icon"></i>
-                  {{ card.label }}
-                </p>
-                <p class="metric-card__value">{{ card.value }}</p>
-                <p class="metric-card__detail">{{ card.detail }}</p>
+
+          @if (cargandoStats()) {
+            <div class="progress-bar-indeterminate" style="margin-bottom:1.25rem"></div>
+            <div class="stats-grid">
+              @for (i of [1,2,3,4]; track i) {
+                <div class="sk-card">
+                  <div class="sk-line sk-line--xs" style="width:55%"></div>
+                  <div class="sk-line sk-line--xl" style="width:40%;margin:.3rem 0"></div>
+                  <div class="sk-line sk-line--xs" style="width:70%"></div>
+                </div>
+              }
+            </div>
+          } @else {
+
+            <section class="stats-grid">
+              @for (card of summaryCards(); track card.label) {
+                <article class="metric-card" [style.border-left-color]="card.color">
+                  <p class="metric-card__label">
+                    <i [class]="card.icon"></i>
+                    {{ card.label }}
+                  </p>
+                  <p class="metric-card__value">{{ card.value }}</p>
+                  <p class="metric-card__detail">{{ card.detail }}</p>
+                </article>
+              }
+            </section>
+
+            <section class="dashboard-grid">
+              <article class="surface-card panel-card">
+                <div class="section-header section-header--compact">
+                  <div>
+                    <p class="section-kicker">Agenda</p>
+                    <h2 class="section-heading">Próximas entregas</h2>
+                  </div>
+                  <span class="chip">{{ pendientes() }} activas</span>
+                </div>
+
+                @if (tareasAgenda().length) {
+                  <div class="activity-list">
+                    @for (tarea of tareasAgenda(); track tarea.id) {
+                      <article class="activity-item">
+                        <span class="activity-item__dot" [style.background]="priorityColor(tarea.prioridad)"></span>
+                        <div class="activity-item__copy">
+                          <strong>{{ tarea.titulo }}</strong>
+                          <span>{{ tarea.materia }} · vence {{ formatDeadline(tarea.fechaLimite) }}</span>
+                        </div>
+                        <span
+                          class="chip"
+                          [class.status--success]="tarea.estado === 'completada'"
+                          [class.status--danger]="isOverdue(tarea)"
+                          [class.status--warning]="!isOverdue(tarea) && tarea.estado !== 'completada'"
+                        >
+                          {{ statusLabel(tarea) }}
+                        </span>
+                      </article>
+                    }
+                  </div>
+                } @else {
+                  <div class="dashboard-empty-state">
+                    <i class="bi bi-calendar-x"></i>
+                    <h3>No tienes entregas cargadas</h3>
+                    <p>Tu agenda está vacía. Crea tu primera tarea para empezar.</p>
+                    <button type="button" class="primary-button" (click)="setSection('agenda')">
+                      Ir a la agenda
+                    </button>
+                  </div>
+                }
               </article>
-            }
-          </section>
 
-          <section class="dashboard-grid">
-            <article class="surface-card panel-card">
-              <div class="section-header section-header--compact">
-                <div>
-                  <p class="section-kicker">Agenda</p>
-                  <h2 class="section-heading">Próximas entregas</h2>
-                </div>
-                <span class="chip">{{ pendientes() }} activas</span>
-              </div>
-
-              @if (tareasAgenda().length) {
-                <div class="activity-list">
-                  @for (tarea of tareasAgenda(); track tarea.id) {
-                    <article class="activity-item">
-                      <span class="activity-item__dot" [style.background]="priorityColor(tarea.prioridad)"></span>
-                      <div class="activity-item__copy">
-                        <strong>{{ tarea.titulo }}</strong>
-                        <span>{{ tarea.materia }} · vence {{ formatDeadline(tarea.fechaLimite) }}</span>
-                      </div>
-                      <span
-                        class="chip"
-                        [class.status--success]="tarea.estado === 'completada'"
-                        [class.status--danger]="isOverdue(tarea)"
-                        [class.status--warning]="!isOverdue(tarea) && tarea.estado !== 'completada'"
-                      >
-                        {{ statusLabel(tarea) }}
-                      </span>
-                    </article>
-                  }
-                </div>
-              } @else {
-                <div class="dashboard-empty-state">
-                  <i class="bi bi-calendar-x"></i>
-                  <h3>No tienes entregas cargadas</h3>
-                  <p>Tu agenda está vacía. Crea tu primera tarea para empezar.</p>
-                  <button type="button" class="primary-button" (click)="setSection('agenda')">
-                    Ir a la agenda
-                  </button>
-                </div>
-              }
-            </article>
-
-            <!-- Resumen rápido de progreso -->
-            <article class="surface-card panel-card">
-              <div class="section-header section-header--compact">
-                <div>
-                  <p class="section-kicker">Progreso</p>
-                  <h2 class="section-heading">Estado académico</h2>
-                </div>
-              </div>
-
-              @if (stats().totalMaterias > 0) {
-                <div class="small-stack">
-                  <div class="small-stat">
-                    <span>Promedio</span>
-                    <strong>{{ promedioDisplay() }}</strong>
-                  </div>
-                  <div class="small-stat">
-                    <span>Créditos cursados</span>
-                    <strong>{{ stats().creditosCursados }}/{{ stats().creditosTotales }}</strong>
-                  </div>
-                  <div class="small-stat">
-                    <span>Avance total</span>
-                    <strong>{{ avance() }}%</strong>
-                  </div>
-                  <div class="progress-track" style="margin-top:.5rem">
-                    <div class="progress-fill" [style.width.%]="avance()"></div>
+              <article class="surface-card panel-card">
+                <div class="section-header section-header--compact">
+                  <div>
+                    <p class="section-kicker">Progreso</p>
+                    <h2 class="section-heading">Estado académico</h2>
                   </div>
                 </div>
-              } @else {
-                <div class="dashboard-empty-state" style="min-height:8rem">
-                  <i class="bi bi-bar-chart-line"></i>
-                  <p>Ve a <strong>Materias</strong> para registrar tus datos académicos.</p>
-                  <button type="button" class="primary-button" (click)="setSection('materias')">
-                    Ir a materias
-                  </button>
-                </div>
-              }
-            </article>
-          </section>
+
+                @if (stats().totalMaterias > 0) {
+                  <div class="small-stack">
+                    <div class="small-stat">
+                      <span>Promedio</span>
+                      <strong>{{ promedioDisplay() }}</strong>
+                    </div>
+                    <div class="small-stat">
+                      <span>Créditos cursados</span>
+                      <strong>{{ stats().creditosCursados }}/{{ stats().creditosTotales }}</strong>
+                    </div>
+                    <div class="small-stat">
+                      <span>Avance total</span>
+                      <strong>{{ avance() }}%</strong>
+                    </div>
+                    <div class="progress-track" style="margin-top:.5rem">
+                      <div class="progress-fill" [style.width.%]="avance()"></div>
+                    </div>
+                  </div>
+                } @else {
+                  <div class="dashboard-empty-state" style="min-height:8rem">
+                    <i class="bi bi-bar-chart-line"></i>
+                    <p>Ve a <strong>Materias</strong> para registrar tus datos académicos.</p>
+                    <button type="button" class="primary-button" (click)="setSection('materias')">
+                      Ir a materias
+                    </button>
+                  </div>
+                }
+              </article>
+            </section>
+
+          }
+
         }
 
         <!-- ── Agenda ── -->

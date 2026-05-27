@@ -39,8 +39,9 @@ export class MisMateriasComponent implements OnInit {
 
   // ── Estado ──
   vista    = signal<Vista>('lista');
-  cargando = signal(false);
-  error    = signal('');
+  cargando          = signal(false);
+  cargandoActividades = signal(false);
+  error             = signal('');
 
   // ── Datos ──
   catalogo                   = signal<Materia[]>([]);
@@ -413,7 +414,11 @@ export class MisMateriasComponent implements OnInit {
   }
 
   cargarActividades(umId: number): void {
-    this.svc.obtenerActividades(umId).pipe(catchError(() => of([]))).subscribe({
+    this.cargandoActividades.set(true);
+    this.svc.obtenerActividades(umId).pipe(
+      catchError(() => of([])),
+      finalize(() => { this.cargandoActividades.set(false); this.cdr.markForCheck(); })
+    ).subscribe({
       next: (acts: Actividad[]) => {
         this.actividades.set(acts);
         if (!acts.length) { this.cdr.markForCheck(); return; }

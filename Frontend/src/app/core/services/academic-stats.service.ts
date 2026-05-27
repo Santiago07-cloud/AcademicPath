@@ -1,7 +1,7 @@
-import { Injectable, inject, computed } from '@angular/core';
+import { Injectable, inject, computed, signal } from '@angular/core';
 import { toSignal, toObservable } from '@angular/core/rxjs-interop';
 import { BehaviorSubject, combineLatest, Observable, of } from 'rxjs';
-import { map, switchMap, catchError, distinctUntilChanged } from 'rxjs/operators';
+import { map, switchMap, catchError, distinctUntilChanged, tap, finalize } from 'rxjs/operators';
 
 import { AuthService } from './auth.service';
 import { AgendaService } from './agenda.service';
@@ -54,6 +54,9 @@ export class AcademicStatsService {
    */
   private readonly _refresh$ = new BehaviorSubject<void>(undefined);
 
+  /** Signal de carga: true mientras se están consultando datos del backend */
+  readonly cargando = signal<boolean>(false);
+
   /**
    * Observable del signal de tareas de agenda convertido a Observable RxJS.
    * Cada vez que AgendaService muta su signal (addTask, toggleTask, removeTask),
@@ -76,6 +79,7 @@ export class AcademicStatsService {
     switchMap(([user]) => {
       if (!user) return of(this._emptyStats());
 
+      this.cargando.set(true);
       const hoy = this._todayStart();
 
       return combineLatest([
@@ -119,21 +123,12 @@ export class AcademicStatsService {
             ? entregasActivas[0]
             : (pendientesList.length > 0 ? pendientesList[0] : null);
 
-          return {
-            inscripciones: inscs,
-            totalMaterias: inscs.length,
-            creditosTotales,
-            creditosCursados,
-            promedioGeneral,
-            avancePorcentaje,
-            tareas,
-            pendientes: pendientesList.length,
-            vencidas,
-            proximaEntrega,
-            entregasActivas,
-            progresoBackend,
+          return { inscripciones: inscs, totalMaterias: inscs.length, creditosTotales, creditosCursados,
+            promedioGeneral, avancePorcentaje, tareas, pendientes: pendientesList.length,
+            vencidas, proximaEntrega, entregasActivas, progresoBackend,
           } satisfies AcademicStats;
         }),
+        finalize(() => this.cargando.set(false)),
       );
     }),
   );
