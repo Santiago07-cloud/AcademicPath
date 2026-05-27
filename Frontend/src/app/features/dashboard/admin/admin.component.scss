@@ -491,6 +491,12 @@ select.field-input {
     border-color: rgba(245,158,11,0.25);
     color: #f59e0b;
   }
+
+  &--danger {
+    background: rgba(244,63,94,0.1);
+    border-color: rgba(244,63,94,0.25);
+    color: #f43f5e;
+  }
 }
 
 /* ── Grid de materias ── */

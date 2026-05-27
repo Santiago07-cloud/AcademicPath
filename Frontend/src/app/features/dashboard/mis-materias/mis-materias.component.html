@@ -46,9 +46,23 @@
 
     <!-- Lista -->
     @if (cargando()) {
-      <div class="mm-loading">
-        <div class="spinner"></div>
-        <span>Cargando materias...</span>
+      <!-- Skeleton de cards mientras carga -->
+      <div class="mm-grid">
+        @for (i of [1,2,3,4]; track i) {
+          <div class="sk-card">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div class="sk-circle" style="width:2.4rem;height:2.4rem"></div>
+              <div class="sk-line sk-line--xs" style="width:5rem"></div>
+            </div>
+            <div class="sk-line sk-line--xs" style="width:3.5rem"></div>
+            <div class="sk-line sk-line--lg" style="width:70%"></div>
+            <div class="sk-line sk-line--xs" style="width:55%"></div>
+            <div style="margin-top:.5rem;display:flex;justify-content:space-between;align-items:center">
+              <div class="sk-line sk-line--md" style="width:4rem"></div>
+              <div class="sk-line sk-line--xs" style="width:2rem"></div>
+            </div>
+          </div>
+        }
       </div>
     } @else if (misInscripciones().length === 0) {
       <div class="mm-empty">
@@ -194,7 +208,23 @@
     }
 
     <!-- Actividades -->
-    @if (actividades().length === 0) {
+    @if (cargandoActividades()) {
+      <div class="act-list">
+        @for (i of [1,2,3]; track i) {
+          <div class="sk-card" style="flex-direction:row;align-items:center;gap:1rem;padding:.9rem 1.1rem">
+            <div style="flex:1;display:flex;flex-direction:column;gap:.5rem">
+              <div class="sk-line sk-line--xs" style="width:3.5rem"></div>
+              <div class="sk-line sk-line--md" style="width:60%"></div>
+              <div class="sk-line sk-line--xs" style="width:40%"></div>
+            </div>
+            <div style="display:flex;gap:.5rem">
+              <div class="sk-circle" style="width:2rem;height:2rem"></div>
+              <div class="sk-circle" style="width:2rem;height:2rem"></div>
+            </div>
+          </div>
+        }
+      </div>
+    } @else if (actividades().length === 0) {
       <div class="mm-empty mm-empty--sm">
         <i class="bi bi-clipboard-plus"></i>
         <h3>Sin actividades registradas</h3>

@@ -7,7 +7,7 @@ import { MateriaService } from '../../../core/services/materia.service';
 import { UsuarioService } from '../../../core/services/usuario.service';
 import { UsuarioMateria } from '../../../core/models/materia.model';
 import { Usuario } from '../../../core/models/usuario.model';
-import { AprobadasPipe, CursandoPipe } from './admin.pipes';
+import { AprobadasPipe, CursandoPipe, ReprobadasPipe } from './admin.pipes';
 
 // Solo la pestaña de usuarios permanece
 type TabAdmin = 'usuarios';
@@ -15,7 +15,7 @@ type TabAdmin = 'usuarios';
 @Component({
   selector: 'app-admin',
   standalone: true,
-  imports: [CommonModule, AprobadasPipe, CursandoPipe],
+  imports: [CommonModule, AprobadasPipe, CursandoPipe, ReprobadasPipe],
   templateUrl: './admin.component.html',
   styleUrl: './admin.component.scss',
   changeDetection: ChangeDetectionStrategy.Default,
@@ -50,6 +50,10 @@ export class AdminComponent implements OnInit {
   private pendingAction: (() => void) | null = null;
 
   ngOnInit(): void { this.cargarTodo(); }
+
+  get usuariosOrdenados(): Usuario[] {
+    return [...this.usuarios()].sort((a, b) => a.id - b.id);
+  }
 
   cargarTodo(): void {
     this.cargando.set(true);

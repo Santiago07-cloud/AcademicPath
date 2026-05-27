@@ -51,7 +51,7 @@
             </tr>
           </thead>
           <tbody>
-            @for (u of usuarios(); track u.id) {
+            @for (u of usuariosOrdenados; track u.id) {
               <!-- Fila del usuario -->
               <tr class="usuario-row" [class.usuario-row--expanded]="expandidoId() === u.id"
                   (click)="toggleMaterias(u)" style="cursor:pointer">
@@ -170,6 +170,12 @@
             <i class="bi bi-clock"></i>
             <span>{{ materiasDeUsuario() | cursando }} cursando</span>
           </div>
+          @if ((materiasDeUsuario() | reprobadas) > 0) {
+            <div class="stat-pill stat-pill--danger">
+              <i class="bi bi-x-circle"></i>
+              <span>{{ materiasDeUsuario() | reprobadas }} reprobada{{ (materiasDeUsuario() | reprobadas) !== 1 ? 's' : '' }}</span>
+            </div>
+          }
         </div>
 
         <div class="materias-user-grid">

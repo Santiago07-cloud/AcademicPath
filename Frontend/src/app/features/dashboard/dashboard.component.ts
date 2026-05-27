@@ -83,6 +83,7 @@ export class DashboardComponent implements OnInit {
 
   // ── Stats centralizadas (Materias + Agenda) ─────────────────────────────────
   readonly stats = this.statsSvc.stats;
+  readonly cargandoStats = this.statsSvc.cargando;
 
   // Shortcuts sobre el stats signal
   readonly inscripciones   = computed(() => this.stats().inscripciones);
