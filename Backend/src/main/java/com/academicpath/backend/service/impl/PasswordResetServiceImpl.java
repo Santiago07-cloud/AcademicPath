@@ -7,6 +7,8 @@ import com.academicpath.backend.repository.PasswordResetTokenRepository;
 import com.academicpath.backend.repository.UsuarioRepository;
 import com.academicpath.backend.service.EmailService;
 import com.academicpath.backend.service.PasswordResetService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,6 +21,8 @@ import java.util.Base64;
 
 @Service
 public class PasswordResetServiceImpl implements PasswordResetService {
+
+    private static final Logger log = LoggerFactory.getLogger(PasswordResetServiceImpl.class);
 
     private static final int TOKEN_EXPIRATION_MINUTES = 30;
 
@@ -60,7 +64,13 @@ public class PasswordResetServiceImpl implements PasswordResetService {
 
         // Construir link y enviar correo
         String resetLink = frontendUrl + "/reset-password?token=" + rawToken;
-        emailService.enviarCorreoRecuperacion(usuario.getCorreo(), usuario.getNombres(), resetLink);
+        try {
+            emailService.enviarCorreoRecuperacion(usuario.getCorreo(), usuario.getNombres(), resetLink);
+        } catch (Exception e) {
+            // Log detallado para debugging en Render, sin exponer detalles al cliente
+            log.error("Error al enviar correo de recuperación a {}: {}", usuario.getCorreo(), e.getMessage(), e);
+            throw new UsuarioException("No se pudo enviar el correo. Verifica tu dirección o inténtalo más tarde.");
+        }
     }
 
     @Override
