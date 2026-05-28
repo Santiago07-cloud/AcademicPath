@@ -30,10 +30,6 @@ public class SecurityConfig {
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    /**
-     * URL del frontend en producción. En Render se define como variable de entorno.
-     * Ejemplo: https://tu-app.vercel.app
-     */
     @Value("${app.frontend.url}")
     private String frontendUrl;
 
@@ -78,9 +74,6 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-
-        // En producción solo se permite el frontend real.
-        // En local se añaden los orígenes de desarrollo.
         configuration.setAllowedOrigins(Arrays.asList(
                 frontendUrl,
                 "http://localhost:4200",
