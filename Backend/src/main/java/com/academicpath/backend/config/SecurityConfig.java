@@ -2,6 +2,7 @@ package com.academicpath.backend.config;
 
 import com.academicpath.backend.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -29,6 +30,13 @@ public class SecurityConfig {
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    /**
+     * URL del frontend en producción. En Render se define como variable de entorno.
+     * Ejemplo: https://tu-app.vercel.app
+     */
+    @Value("${app.frontend.url}")
+    private String frontendUrl;
+
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
@@ -46,6 +54,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
+                        .requestMatchers("/health").permitAll()
                         .requestMatchers("/", "/error").permitAll()
                         .requestMatchers("/auth/register", "/auth/login",
                                 "/auth/forgot-password",
@@ -69,13 +78,15 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
+
+        // En producción solo se permite el frontend real.
+        // En local se añaden los orígenes de desarrollo.
         configuration.setAllowedOrigins(Arrays.asList(
+                frontendUrl,
                 "http://localhost:4200",
                 "http://localhost:4201",
                 "http://localhost:3000",
-                "http://localhost:56542",
-                "http://127.0.0.1:4200",
-                "http://127.0.0.1:4201"
+                "http://127.0.0.1:4200"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
