@@ -17,19 +17,14 @@ public class UsuarioMateriaResponse {
     private Long usuarioId;
     private Long materiaId;
 
-    // Objeto materia completo para que el frontend pueda mostrar código y créditos
     private MateriaInfo materia;
-
-    // Mantener campo plano para compatibilidad
     private String materiaNombre;
 
-    private Long profesorId;
-    private String profesorNombre;
     private Integer semestre;
     private Integer anio;
     private String estado;
     private Double notaFinal;
-    private Double avancePorcentaje; // 0.0 a 100.0 — porcentaje de actividades calificadas
+    private Double avancePorcentaje;
     private LocalDateTime fechaCreacion;
 
     @Data

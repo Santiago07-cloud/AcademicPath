@@ -47,8 +47,4 @@ public class Materia {
     @OneToMany(mappedBy = "materiaPrerequisito", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @ToString.Exclude
     private Set<Prerrequisito> tienePrerrequisitos;
-
-    @OneToMany(mappedBy = "materia", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    @ToString.Exclude
-    private Set<SugerenciaMateria> sugerenciasMaterias;
 }
