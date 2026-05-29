@@ -240,7 +240,7 @@
                 <strong>{{ act.titulo }}</strong>
                 <span>Peso: {{ act.peso }}% · Nota máx: {{ act.notaMaxima }}</span>
                 @if (act.fechaEntrega) {
-                  <span class="act-fecha"><i class="bi bi-calendar-event"></i> {{ act.fechaEntrega }}</span>
+                  <span class="act-fecha"><i class="bi bi-calendar-event"></i> {{ act.fechaEntrega | fechaColombia:'dd/MM/yyyy' }}</span>
                 }
               </div>
             </div>

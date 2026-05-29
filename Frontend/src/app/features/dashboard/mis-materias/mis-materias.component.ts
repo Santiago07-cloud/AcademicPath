@@ -4,6 +4,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
+import { FechaColombiaPipe } from '../../../shared/pipes/fecha-colombia.pipe';
 import { forkJoin, of } from 'rxjs';
 import { catchError, finalize } from 'rxjs/operators';
 import { AuthService } from '../../../core/services/auth.service';
@@ -21,7 +22,7 @@ type Vista = 'lista' | 'detalle';
 @Component({
   selector: 'app-mis-materias',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, FechaColombiaPipe],
   templateUrl: './mis-materias.component.html',
   styleUrls: ['./mis-materias.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
