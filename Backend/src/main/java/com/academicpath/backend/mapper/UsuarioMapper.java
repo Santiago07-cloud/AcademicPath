@@ -15,5 +15,7 @@ public interface UsuarioMapper {
     @Mapping(target = "usuarioMaterias", ignore = true)
     @Mapping(target = "progresoAcademico", ignore = true)
     @Mapping(target = "rol", ignore = true)
+    @Mapping(target = "fechaCreacion", ignore = true)
+    @Mapping(target = "fechaActualizacion", ignore = true)
     Usuario toEntity(UsuarioResponse response);
 }
