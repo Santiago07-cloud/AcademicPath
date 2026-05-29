@@ -285,7 +285,7 @@
 <!-- Modal: Inscribir materia -->
 @if (mostrarModalInscribir()) {
   <div class="modal-overlay" (click)="mostrarModalInscribir.set(false)">
-    <div class="modal-card" (click)="$event.stopPropagation()">
+    <div class="modal-card modal-card--activity" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h3>Nueva materia</h3>
         <button class="btn-icon-sm" (click)="mostrarModalInscribir.set(false)"><i class="bi bi-x-lg"></i></button>
@@ -360,7 +360,7 @@
 
 <!-- Modal: Actividad -->
 @if (mostrarModalActividad()) {
-  <div class="modal-overlay" (click)="mostrarModalActividad.set(false)">
+  <div class="modal-overlay modal-overlay--activity" (click)="mostrarModalActividad.set(false)">
     <div class="modal-card" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <h3>{{ actividadSeleccionada() ? 'Editar actividad' : 'Nueva actividad' }}</h3>
@@ -402,7 +402,7 @@
                 <i class="bi bi-calendar3"></i>
               </button>
               @if (actividadCalendarOpen()) {
-                <div class="select-panel calendar-panel">
+                <div class="calendar-inline">
                   <div class="calendar-header">
                     <button type="button" class="icon-button" (click)="actividadCalendarPrevMonth()" aria-label="Mes anterior">
                       <i class="bi bi-chevron-left"></i>
@@ -421,8 +421,9 @@
                         [class.calendar-day--empty]="!day.date"
                         [class.calendar-day--today]="day.isToday"
                         [class.calendar-day--selected]="day.isSelected"
-                        (click)="day.date ? selectActividadDate(day.date) : null"
-                        [disabled]="!day.date">
+                        [class.calendar-day--disabled]="day.isPast"
+                        (click)="day.date && !day.isPast ? selectActividadDate(day.date) : null"
+                        [disabled]="!day.date || day.isPast">
                         {{ day.label }}
                       </button>
                     }

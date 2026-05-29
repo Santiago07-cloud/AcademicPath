@@ -100,8 +100,9 @@
                       [class.calendar-day--empty]="!day.date"
                       [class.calendar-day--today]="day.isToday"
                       [class.calendar-day--selected]="day.isSelected"
-                      (click)="day.date ? selectCalendarDate(day.date) : null"
-                      [disabled]="!day.date"
+                      [class.calendar-day--disabled]="day.isPast"
+                      (click)="day.date && !day.isPast ? selectCalendarDate(day.date) : null"
+                      [disabled]="!day.date || day.isPast"
                     >
                       {{ day.label }}
                     </button>

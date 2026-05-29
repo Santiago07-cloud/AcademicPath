@@ -351,6 +351,24 @@ select.field-select option,
   animation: fadeUp 0.15s ease both;
 }
 
+.select-panel--fixed {
+  position: fixed;
+  bottom: auto;
+  top: auto;
+  left: auto;
+}
+
+.select-panel--context {
+  bottom: auto;
+  top: auto;
+  left: auto;
+}
+
+.select-panel--down {
+  top: calc(100% + 6px);
+  bottom: auto;
+}
+
 /* Variante: calendario — más alto y sin max-height restrictivo */
 .select-panel.calendar-panel,
 .calendar-panel {
@@ -360,9 +378,13 @@ select.field-select option,
   padding: 0.75rem;
 }
 
-.select-panel--up {
+.select-panel--up:not(.select-panel--fixed) {
   top: auto;
   bottom: calc(100% + 6px);
+  box-shadow: 0 -16px 48px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05);
+}
+
+.select-panel--up.select-panel--fixed {
   box-shadow: 0 -16px 48px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05);
 }
 

@@ -248,7 +248,15 @@
   font-weight: 700;
 }
 
-.calendar-day:hover:not(.calendar-day--empty):not(.calendar-day--selected) {
+.calendar-day--disabled {
+  cursor: not-allowed;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.02);
+  border-color: transparent;
+  opacity: 0.55;
+}
+
+.calendar-day:hover:not(.calendar-day--empty):not(.calendar-day--selected):not(.calendar-day--disabled) {
   background: rgba(255, 255, 255, 0.08);
   border-color: var(--border-hover);
 }

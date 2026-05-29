@@ -85,13 +85,30 @@ export class MisMateriasComponent implements OnInit {
     const currentValue = this.formActividad.controls.fechaEntrega.value || this.dateInputValue(new Date());
     const selected = this.parseDate(currentValue);
     const today    = this.startOfDay(new Date());
-    const days: Array<{ date: Date | null; label: string; isSelected: boolean; isToday: boolean }> = [];
-    for (let i = 0; i < leading; i++) days.push({ date: null, label: '', isSelected: false, isToday: false });
+    const days: Array<{
+      date: Date | null;
+      label: string;
+      isSelected: boolean;
+      isToday: boolean;
+      isPast: boolean;
+    }> = [];
+    for (let i = 0; i < leading; i++) {
+      days.push({ date: null, label: '', isSelected: false, isToday: false, isPast: false });
+    }
     for (let d = 1; d <= totalDays; d++) {
       const date = new Date(year, mi, d);
-      days.push({ date, label: String(d), isSelected: this.sameDay(date, selected), isToday: this.sameDay(date, today) });
+      const isPast = this.startOfDay(date).getTime() < today.getTime();
+      days.push({
+        date,
+        label: String(d),
+        isSelected: this.sameDay(date, selected),
+        isToday: this.sameDay(date, today),
+        isPast,
+      });
     }
-    while (days.length % 7 !== 0) days.push({ date: null, label: '', isSelected: false, isToday: false });
+    while (days.length % 7 !== 0) {
+      days.push({ date: null, label: '', isSelected: false, isToday: false, isPast: false });
+    }
     return days;
   });
 
@@ -197,7 +214,17 @@ export class MisMateriasComponent implements OnInit {
     const open = !this.actividadCalendarOpen();
     this.closeDropdowns();
     if (open) {
-      this.calendarPanelPos.set(this.dropPos.calcular(trigger, 320));
+      const rect = trigger.getBoundingClientRect();
+      const modal = trigger.closest('.modal-card') as HTMLElement | null;
+      const modalRect = modal?.getBoundingClientRect();
+      const leftBase = modalRect ? modalRect.left : 0;
+      const topBase = modalRect ? modalRect.top : 0;
+      this.calendarPanelPos.set({
+        left: `${rect.left - leftBase}px`,
+        width: `${rect.width}px`,
+        openUp: false,
+        top: `${rect.bottom - topBase + 6}px`,
+      });
       this.actividadCalendarOpen.set(true);
       const base = this.formActividad.controls.fechaEntrega.value
         ? this.parseDate(this.formActividad.controls.fechaEntrega.value)
@@ -207,6 +234,9 @@ export class MisMateriasComponent implements OnInit {
   }
 
   selectActividadDate(date: Date): void {
+    if (this.startOfDay(date).getTime() < this.todayStart()) {
+      return;
+    }
     this.formActividad.controls.fechaEntrega.setValue(this.dateInputValue(date));
     this.formActividad.controls.fechaEntrega.markAsTouched();
     this.actividadCalendarOpen.set(false);
@@ -695,6 +725,11 @@ export class MisMateriasComponent implements OnInit {
   private parseDate(v: string): Date { return new Date(`${v}T12:00:00`); }
   private startOfMonth(d: Date): Date { return new Date(d.getFullYear(), d.getMonth(), 1); }
   private startOfDay(d: Date): Date { const r = new Date(d); r.setHours(0, 0, 0, 0); return r; }
+  private todayStart(): number {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return today.getTime();
+  }
   private sameDay(a: Date, b: Date): boolean {
     return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
   }

@@ -4,6 +4,7 @@
   display: grid;
   grid-template-columns: 1fr 520px;
   min-height: 100vh;
+  height: 100dvh;
 }
 
 /* Brand panel */
@@ -127,6 +128,8 @@
   padding: 2rem 1.5rem;
   background: var(--bg-2);
   overflow-y: auto;
+  height: 100dvh;
+  -webkit-overflow-scrolling: touch;
 }
 
 .auth-form-card {
@@ -213,6 +216,10 @@ form { display: flex; flex-direction: column; gap: 0.875rem; }
 @media (max-width: 860px) {
   .auth-shell { grid-template-columns: 1fr; }
   .auth-brand { display: none; }
-  .auth-form-panel { min-height: 100vh; padding: 2rem 1.25rem; }
+  .auth-form-panel {
+    min-height: 100dvh;
+    align-items: flex-start;
+    padding: 2rem 1.25rem 2.5rem;
+  }
   .auth-form-card__logo--mobile { display: flex; }
 }

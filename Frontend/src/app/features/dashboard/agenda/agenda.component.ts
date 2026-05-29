@@ -59,14 +59,16 @@ export class AgendaComponent {
       isSelected: boolean;
       isToday: boolean;
       isCurrentMonth: boolean;
+      isPast: boolean;
     }> = [];
 
     for (let i = 0; i < leading; i += 1) {
-      days.push({ date: null, label: '', isSelected: false, isToday: false, isCurrentMonth: false });
+      days.push({ date: null, label: '', isSelected: false, isToday: false, isCurrentMonth: false, isPast: false });
     }
 
     for (let day = 1; day <= totalDays; day += 1) {
       const date = new Date(year, monthIndex, day);
+      const isPast = this.startOfDay(date).getTime() < today.getTime();
       const isSelected = this.sameDay(date, selected);
       const isToday = this.sameDay(date, today);
       days.push({
@@ -75,11 +77,12 @@ export class AgendaComponent {
         isSelected,
         isToday,
         isCurrentMonth: true,
+        isPast,
       });
     }
 
     while (days.length % 7 !== 0) {
-      days.push({ date: null, label: '', isSelected: false, isToday: false, isCurrentMonth: false });
+      days.push({ date: null, label: '', isSelected: false, isToday: false, isCurrentMonth: false, isPast: false });
     }
 
     return days;
@@ -221,6 +224,9 @@ export class AgendaComponent {
   }
 
   selectCalendarDate(date: Date): void {
+    if (this.startOfDay(date).getTime() < this.todayStart()) {
+      return;
+    }
     this.taskForm.controls.fechaLimite.setValue(this.dateInputValue(date));
     this.taskForm.controls.fechaLimite.markAsTouched();
     this.closeCalendar();
