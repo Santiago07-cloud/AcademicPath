@@ -12,6 +12,5 @@ public interface MateriaMapper {
     @Mapping(target = "usuarioMaterias", ignore = true)
     @Mapping(target = "prerrequisitos", ignore = true)
     @Mapping(target = "tienePrerrequisitos", ignore = true)
-    @Mapping(target = "sugerenciasMaterias", ignore = true)
     Materia toEntity(MateriaResponse response);
 }

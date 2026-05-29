@@ -9,10 +9,11 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface UsuarioMateriaMapper {
 
-    @Mapping(target = "usuarioId",     source = "usuario.id")
-    @Mapping(target = "materiaId",     source = "materia.id")
-    @Mapping(target = "materiaNombre", source = "materia.nombre")
-    @Mapping(target = "materia",       source = "materia")
+    @Mapping(target = "usuarioId",        source = "usuario.id")
+    @Mapping(target = "materiaId",        source = "materia.id")
+    @Mapping(target = "materiaNombre",    source = "materia.nombre")
+    @Mapping(target = "materia",          source = "materia")
+    @Mapping(target = "avancePorcentaje", ignore = true)
     UsuarioMateriaResponse toResponse(UsuarioMateria usuarioMateria);
 
     @Mapping(target = "id",          source = "id")
