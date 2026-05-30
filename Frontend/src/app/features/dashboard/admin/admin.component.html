@@ -32,7 +32,35 @@
     </p>
 
     @if (cargando()) {
-      <div class="admin-loading"><div class="spinner"></div> Cargando...</div>
+      <div class="admin-loading">
+        <div class="spinner"></div>
+        <span>Cargando usuarios...</span>
+      </div>
+      <!-- Skeleton tabla -->
+      <div class="admin-table-wrap" style="margin-top:.5rem">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th style="width:2.5rem"></th>
+              <th>#</th><th>Nombre</th><th>Correo</th><th>Universidad</th><th>Carrera</th><th>Rol</th><th></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (i of [1,2,3,4,5]; track i) {
+              <tr>
+                <td><div class="sk-circle" style="width:1.5rem;height:1.5rem;margin:auto"></div></td>
+                <td><div class="sk-line sk-line--xs" style="width:1.5rem"></div></td>
+                <td><div class="sk-line" style="width:80%"></div></td>
+                <td><div class="sk-line sk-line--xs" style="width:90%"></div></td>
+                <td><div class="sk-line sk-line--xs" style="width:70%"></div></td>
+                <td><div class="sk-line sk-line--xs" style="width:75%"></div></td>
+                <td><div class="sk-line sk-line--xs" style="width:3.5rem;border-radius:99px"></div></td>
+                <td><div class="sk-circle" style="width:2rem;height:2rem"></div></td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
     } @else if (usuarios().length === 0) {
       <div class="admin-empty"><i class="bi bi-people"></i><p>Sin usuarios cargados</p></div>
     } @else {

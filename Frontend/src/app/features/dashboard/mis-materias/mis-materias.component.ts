@@ -62,6 +62,13 @@ export class MisMateriasComponent implements OnInit {
   actividadSeleccionada    = signal<Actividad | null>(null);
   calificacionEditando     = signal<Calificacion | null>(null);
 
+  // ── Loading por acción ──
+  guardandoInscripcion  = signal(false);
+  guardandoActividad    = signal(false);
+  guardandoCalificacion = signal(false);
+  guardandoCerrar       = signal(false);
+  eliminando            = signal(false);
+
   // ── Dropdowns ──
   // Materia del catálogo — signal separado, NO form control
   materiaDropdownOpen   = signal(false);
@@ -396,6 +403,7 @@ export class MisMateriasComponent implements OnInit {
     this.formInscribir.markAllAsTouched();
     if (this.formInscribir.invalid || !this.currentUser) return;
     const v = this.formInscribir.getRawValue();
+    this.guardandoInscripcion.set(true);
     this.svc.crearMateria({
       codigo: v.codigo.toUpperCase().trim(),
       nombre: v.nombre.trim(),
@@ -408,16 +416,22 @@ export class MisMateriasComponent implements OnInit {
           semestre: Number(v.semestre), anio: Number(v.anio), estado: 'CURSANDO',
         }).subscribe({
           next: () => {
+            this.guardandoInscripcion.set(false);
             this.mostrarModalInscribir.set(false);
             this.error.set('');
             this.cargarDatos();
             this.progreso.recalcularProgreso(this.currentUser!.id).subscribe();
             this.statsSvc.refresh();
           },
-          error: (e: any) => { this.error.set(e?.error?.message ?? 'Error al inscribir'); setTimeout(() => this.error.set(''), 4000); },
+          error: (e: any) => {
+            this.guardandoInscripcion.set(false);
+            this.error.set(e?.error?.message ?? 'Error al inscribir');
+            setTimeout(() => this.error.set(''), 4000);
+          },
         });
       },
       error: (e: any) => {
+        this.guardandoInscripcion.set(false);
         const msg = e?.error?.message ?? e?.message ?? '';
         this.error.set(
           msg.toLowerCase().includes('unique') || msg.toLowerCase().includes('duplicate')
@@ -509,14 +523,19 @@ export class MisMateriasComponent implements OnInit {
       fechaEntrega: v.fechaEntrega || undefined,
     };
     const actEdit = this.actividadSeleccionada();
+    this.guardandoActividad.set(true);
     (actEdit ? this.svc.actualizarActividad(actEdit.id, payload) : this.svc.crearActividad(payload)).subscribe({
       next: (act) => {
+        this.guardandoActividad.set(false);
         this.mostrarModalActividad.set(false);
         if (actEdit) { this.actividades.update(l => l.map(a => a.id === act.id ? act : a)); }
         else         { this.actividades.update(l => [...l, act]); }
         this.cdr.markForCheck();
       },
-      error: (e: any) => this.error.set(e?.message ?? 'Error al guardar actividad'),
+      error: (e: any) => {
+        this.guardandoActividad.set(false);
+        this.error.set(e?.message ?? 'Error al guardar actividad');
+      },
     });
   }
 
@@ -541,14 +560,19 @@ export class MisMateriasComponent implements OnInit {
     const act = this.actividadSeleccionada()!;
     const payload: CalificacionRequest = { actividadId: act.id, nota: Number(v.nota), retroalimentacion: v.retroalimentacion };
     const calEdit = this.calificacionEditando();
+    this.guardandoCalificacion.set(true);
     (calEdit ? this.svc.actualizarCalificacion(calEdit.id, payload) : this.svc.crearCalificacion(payload)).subscribe({
       next: (cal) => {
+        this.guardandoCalificacion.set(false);
         this.mostrarModalCalificacion.set(false);
         this.calificacionesPorActividad.update(p => ({ ...p, [act.id]: [cal] }));
         this.cdr.markForCheck();
         this.sincronizarNotaFinal();
       },
-      error: (e: any) => this.error.set(e?.message ?? 'Error al guardar calificación'),
+      error: (e: any) => {
+        this.guardandoCalificacion.set(false);
+        this.error.set(e?.message ?? 'Error al guardar calificación');
+      },
     });
   }
 

@@ -57,9 +57,10 @@ export class AdminComponent implements OnInit {
 
   cargarTodo(): void {
     this.cargando.set(true);
+    this.error.set('');
     this.usuSvc.obtenerTodos().subscribe({
       next: v  => { this.usuarios.set(v); this.cargando.set(false); },
-      error: () => this.cargando.set(false),
+      error: () => { this.cargando.set(false); this.flashError('No se pudieron cargar los usuarios.'); },
     });
   }
 

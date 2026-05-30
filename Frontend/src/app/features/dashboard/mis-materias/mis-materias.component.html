@@ -348,9 +348,14 @@
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="mostrarModalInscribir.set(false)">Cancelar</button>
-          <button type="submit" class="btn btn-primary" [disabled]="formInscribir.invalid">
-            <i class="bi bi-check-lg"></i> Crear e inscribir
+          <button type="button" class="btn btn-secondary" (click)="mostrarModalInscribir.set(false)"
+            [disabled]="guardandoInscripcion()">Cancelar</button>
+          <button type="submit" class="btn btn-primary"
+            [class.btn-loading]="guardandoInscripcion()"
+            [disabled]="formInscribir.invalid || guardandoInscripcion()">
+            @if (!guardandoInscripcion()) {
+              <i class="bi bi-check-lg"></i> Crear e inscribir
+            }
           </button>
         </div>
       </form>
@@ -446,9 +451,14 @@
         </div>
 
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="mostrarModalActividad.set(false)">Cancelar</button>
-          <button type="submit" class="btn btn-primary" [disabled]="formActividad.invalid">
-            <i class="bi bi-check-lg"></i> {{ actividadSeleccionada() ? 'Guardar cambios' : 'Crear actividad' }}
+          <button type="button" class="btn btn-secondary" (click)="mostrarModalActividad.set(false)"
+            [disabled]="guardandoActividad()">Cancelar</button>
+          <button type="submit" class="btn btn-primary"
+            [class.btn-loading]="guardandoActividad()"
+            [disabled]="formActividad.invalid || guardandoActividad()">
+            @if (!guardandoActividad()) {
+              <i class="bi bi-check-lg"></i> {{ actividadSeleccionada() ? 'Guardar cambios' : 'Crear actividad' }}
+            }
           </button>
         </div>
       </form>
@@ -487,9 +497,14 @@
         </label>
 
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" (click)="mostrarModalCalificacion.set(false)">Cancelar</button>
-          <button type="submit" class="btn btn-primary" [disabled]="formCalificacion.invalid">
-            <i class="bi bi-check-lg"></i> {{ calificacionEditando() ? 'Actualizar nota' : 'Guardar nota' }}
+          <button type="button" class="btn btn-secondary" (click)="mostrarModalCalificacion.set(false)"
+            [disabled]="guardandoCalificacion()">Cancelar</button>
+          <button type="submit" class="btn btn-primary"
+            [class.btn-loading]="guardandoCalificacion()"
+            [disabled]="formCalificacion.invalid || guardandoCalificacion()">
+            @if (!guardandoCalificacion()) {
+              <i class="bi bi-check-lg"></i> {{ calificacionEditando() ? 'Actualizar nota' : 'Guardar nota' }}
+            }
           </button>
         </div>
       </form>
