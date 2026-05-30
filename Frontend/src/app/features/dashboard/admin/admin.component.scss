@@ -95,7 +95,13 @@
 
 .admin-table td.muted { color: var(--text-2); }
 .admin-table td.truncate { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.admin-table td.actions-cell { display: flex; gap: 0.4rem; align-items: center; justify-content: flex-end; }
+.admin-table td.actions-cell {
+  text-align: right;
+  white-space: nowrap;
+  vertical-align: middle;
+  width: 3rem;
+  padding-right: 0.75rem;
+}
 
 /* ── Botones icono inline ── */
 .btn-icon-sm {
@@ -208,6 +214,28 @@
 @media (max-width: 700px) {
   .admin-tabs { gap: 0.3rem; }
   .admin-tab  { padding: 0.45rem 0.8rem; font-size: 0.8rem; }
+}
+
+/* ── Responsive tabla usuarios ── */
+@media (max-width: 860px) {
+  .admin-table th:nth-child(5),
+  .admin-table td:nth-child(5) { display: none; } /* Universidad */
+}
+
+@media (max-width: 640px) {
+  .admin-table th:nth-child(4),
+  .admin-table td:nth-child(4),
+  .admin-table th:nth-child(6),
+  .admin-table td:nth-child(6) { display: none; } /* Correo y Carrera */
+
+  .admin-table td.actions-cell {
+    width: 2.5rem;
+    padding-right: 0.5rem;
+  }
+
+  .materias-cell {
+    padding: 0.75rem 0.75rem 1rem 1rem !important;
+  }
 }
 
 /* ── Accordion de materias en tabla de usuarios ── */
